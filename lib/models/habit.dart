@@ -9,10 +9,23 @@ class Habit {
   int friday;
   int saturday;
   int sunday;
+
+  String created;
   // Add other properties as per your needs
 
   // Habit constructor
-  Habit({required this.id, required this.title, required this.reward, required this.monday, required this.tuesday, required this.wednesday, required this.thursday, required this.friday, required this.saturday, required this.sunday});
+  Habit({required this.id,
+    required this.title,
+    required this.reward,
+    required this.monday,
+    required this.tuesday,
+    required this.wednesday,
+    required this.thursday,
+    required this.friday,
+    required this.saturday,
+    required this.sunday,
+    required this.created
+  });
 
   // Convert a Habit object into a Map
   Map<String, dynamic> toMap() {
@@ -25,11 +38,10 @@ class Habit {
       'thursday': thursday,
       'friday': friday,
       'saturday': saturday,
-      'sunday': sunday
+      'sunday': sunday,
+      'created': created
     };
-    if (id != null) {
-      map['id'] = id;
-    }
+    map['id'] = id;
     return map;
   }
 
@@ -46,6 +58,6 @@ class Habit {
         thursday = map['thursday'],
         friday = map['friday'],
         saturday = map['saturday'],
-        sunday = map['sunday'];
-// Initialize other properties
+        sunday = map['sunday'],
+        created = map['created'];// Initialize other properties
 }

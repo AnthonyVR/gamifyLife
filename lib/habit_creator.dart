@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '/services/database_helper.dart';
 
 class HabitCreator extends StatefulWidget {
-  HabitCreator({Key? key}) : super(key: key);
+  final String date;
+
+  HabitCreator({Key? key, required this.date}) : super(key: key);
 
   @override
   _HabitCreatorState createState() => _HabitCreatorState();
@@ -27,6 +29,10 @@ class _HabitCreatorState extends State<HabitCreator> {
   @override
   Widget build(BuildContext context) {
     int timesPerDay = 1; // default value
+    String created = widget.date;
+
+    print(created);
+
 
     return AlertDialog(
       title: Text('Create Habit'),
@@ -74,6 +80,23 @@ class _HabitCreatorState extends State<HabitCreator> {
                 Text("times per day"),
               ],
             ),
+            Row(
+              children: <Widget>[
+                Container(
+                  width: 85, // You can adjust the width as needed
+                  child: TextFormField(
+                    initialValue: created,
+                    onChanged: (value) {
+                      created = value; // assign the input value to 'created'
+                    },
+                    decoration: InputDecoration(),
+                    keyboardType: TextInputType.datetime,
+                  ),
+                ),
+                SizedBox(width: 10), // for a little bit of spacing
+                Text("Custom created date"),
+              ],
+            ),
           ],
         ),
       ),
@@ -98,6 +121,7 @@ class _HabitCreatorState extends State<HabitCreator> {
               DatabaseHelper.columnFriday: days['Friday']! ? timesPerDay : 0,
               DatabaseHelper.columnSaturday: days['Saturday']! ? timesPerDay : 0,
               DatabaseHelper.columnSunday: days['Sunday']! ? timesPerDay : 0,
+              DatabaseHelper.columnCreated: created
             };
             int id = await dbHelper.insert(row);  // insert the habit
             print('inserted row id: $id');

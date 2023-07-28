@@ -76,6 +76,8 @@ class HabitListState extends State<HabitList> {
                       Text('Reward: ${habits[index].reward} coins'),
                       // Display the days fields here
                       Text('${activeDays.join(', ')}'),
+                      Text('Created: ${habits[index].created}'),
+                      SizedBox(height: 15.0),  // Use SizedBox for a vertical space
                       // ... and so on for other days
                     ],
                   ),
@@ -90,6 +92,7 @@ class HabitListState extends State<HabitList> {
                     },
                   ),
                 );
+
               },
             );
           } else if (snapshot.hasError) {
