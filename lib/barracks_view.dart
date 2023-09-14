@@ -1,0 +1,314 @@
+import 'dart:math';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
+import '../models/unit.dart';
+import 'models/village.dart';
+
+class BarracksView extends StatefulWidget {
+
+  BarracksView({required this.villageId});
+  final int villageId;
+
+  @override
+  _BarracksViewState createState() => _BarracksViewState();
+
+}
+
+class _BarracksViewState extends State<BarracksView> {
+
+  Future<List<Unit>> fetchUnits() async {
+    Village? village = await Village.getVillageById(widget.villageId);
+
+    List<Unit>? units = await village.getUnits();
+    return units;
+  }
+
+  Future<void> levelUpUnit(int? id) async {
+    if (id == null) {
+      throw Exception();
+    }
+
+    Village? village = await Village.getVillageById(widget.villageId);
+
+    if (village == null) {
+      throw Exception('Village with ID ${widget.villageId} not found');
+    }
+
+    village.levelUpUnit(id);
+  }
+
+  Future<void> addUnit(int? id) async {
+    if (id == null) {
+      throw Exception();
+    }
+
+    Village? village = await Village.getVillageById(widget.villageId);
+
+    if (village == null) {
+      throw Exception('Village with ID ${widget.villageId} not found');
+    }
+
+    village.addUnit(id);
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Barracks'),
+          bottom: TabBar(
+            tabs: [
+              Tab(text: 'Recruitment',),
+              Tab(text: 'Training'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            _buildRecruitmentView(),
+            _buildTrainingView(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecruitmentView() {
+    return FutureBuilder<List<Unit>>(
+      future: fetchUnits(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error fetching units.'));
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(child: Text('No units available.'));
+        } else {
+          List<Unit> units = snapshot.data!;
+          return ListView.builder(
+            itemCount: units.length,
+            itemBuilder: (BuildContext context, int index) {
+              Unit unit = units[index];
+              return Card(
+                elevation: 5.0,
+                margin: const EdgeInsets.all(10.0),
+                child: Padding(
+                  padding: const EdgeInsets.all(15.0),
+                  child: Row(
+                    children: [
+                      // 1st Column: Unit Name and Amount
+                      Expanded(
+                        flex: 2, // Allocate more space for the merged column
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center, // Center the content vertically
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row( // Wrap the Image and the Amount Text inside a Row
+                              crossAxisAlignment: CrossAxisAlignment.center, // Ensure items in the row are vertically centered
+                              children: [
+                                Text(
+                                  '${unit.amount}',
+                                  style: TextStyle(
+                                    fontSize: 40, // Make the amount stand out
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Image.asset(
+                                  unit.image,
+                                  width: 60,
+                                  height: 60,
+                                ),
+                                SizedBox(width: 10.0), // Provides a little spacing between image and text
+                              ],
+                            ),
+                            Text(
+                              '${unit.name} (lvl.${unit.level})',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 24,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // 2nd Column: Attack, Defence, and Level Up
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Atk: ${unit.offence}'),
+                            Text('Def: ${unit.defence}'),
+                            SizedBox(height: 8.0),
+                          ],
+                        ),
+                      ),
+                      // 3rd Column: Create and Place in Village buttons
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.add_circle_outlined, size: 50, color: Colors.green), // Adjust size and color as needed
+                                  onPressed: () {
+                                    addUnit(unit.id);
+                                    setState(() {});
+                                  },
+                                  color: Colors.green, // This will be the color of the button's background
+                                  padding: EdgeInsets.zero,
+                                ),
+                                // Container(
+                                //   height: 50, // Adjust as needed
+                                //   width: 50,  // Adjust as needed
+                                //   child: ElevatedButton(
+                                //       onPressed: () {
+                                //         levelUpUnit(unit.id);
+                                //         setState(() {});
+                                //       },
+                                //       style: ButtonStyle(
+                                //         backgroundColor: MaterialStateProperty.all(Colors.green),
+                                //         padding: MaterialStateProperty.all(EdgeInsets.zero),
+                                //       ),
+                                //       child: Center(
+                                //         child: Text('+', style: TextStyle(fontSize: 50)),
+                                //       )
+                                //   ),
+                                // ),
+                                SizedBox(width: 10.0),
+                                SvgPicture.asset(
+                                  'assets/coins.svg',
+                                  width: 13,
+                                  height: 13,
+                                ),
+                                SizedBox(width: 3.0),
+                                Text('${unit.cost}'),
+                              ],
+                            ),
+                            SizedBox(height: 8.0),
+                            ElevatedButton(
+                              onPressed: () {
+                                
+                              },
+                              child: Text('Place in Village'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildTrainingView() {
+    return FutureBuilder<List<Unit>>(
+      future: fetchUnits(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error fetching units.'));
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(child: Text('No units available.'));
+        } else {
+          List<Unit> units = snapshot.data!;
+          return ListView.builder(
+            itemCount: units.length,
+            itemBuilder: (BuildContext context, int index) {
+              Unit unit = units[index];
+              return Card(
+                elevation: 5.0,
+                margin: const EdgeInsets.all(10.0),
+                child: Padding(
+                  padding: const EdgeInsets.all(15.0),
+                  child: Row(
+                    children: [
+                      // 1st Column: Unit Name and Amount
+                      Expanded(
+                        flex: 2, // Allocate more space for the merged column
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center, // Center the content vertically
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Image.asset(
+                              unit.image,
+                              width: 60,
+                              height: 60,
+                            ),
+                            Text(
+                              '${unit.name} (lvl.${unit.level})',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 24,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // 2nd Column: Attack, Defence, and Level Up
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Atk: ${unit.offence} (+5)'),
+                            Text('Def: ${unit.defence} (+5)'),
+                            SizedBox(height: 8.0),
+                          ],
+                        ),
+                      ),
+                      // 3rd Column: Create and Place in Village buttons
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () {
+                                levelUpUnit(unit.id);
+                                setState(() {});
+                              },
+                              style: ButtonStyle(
+                                backgroundColor: MaterialStateProperty.all(Colors.green),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text('Level Up '),
+                                  Text(
+                                    '(${unit.id} coins)',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.yellow[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        }
+      },
+    );
+  }
+
+}

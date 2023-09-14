@@ -40,7 +40,8 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
   fl_chart: ^0.40.1
-
+  shared_preferences: ^2.0.9
+  sqflite_common_ffi: any
 
 dev_dependencies:
   flutter_test:
@@ -67,6 +68,12 @@ flutter:
 
   assets:
     - assets/
+    - assets/village_package/
+    - assets/village_package/tiles/
+    - assets/village_package/structure/
+    - assets/village_package/environment/
+    - assets/village_package/unit/
+
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

@@ -123,7 +123,7 @@ class _HabitCreatorState extends State<HabitCreator> {
               DatabaseHelper.columnSunday: days['Sunday']! ? timesPerDay : 0,
               DatabaseHelper.columnCreated: created
             };
-            int id = await dbHelper.insert(row);  // insert the habit
+            int id = await dbHelper.habitDao.insert(row);  // insert the habit
             print('inserted row id: $id');
             Navigator.of(context).pop();
           },

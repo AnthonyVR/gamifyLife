@@ -1,3 +1,3 @@
 class GlobalVariables {
-  static const String appMode = 'test'; // test | prod
+  static String appMode = 'prod'; // test | prod
 }

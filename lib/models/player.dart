@@ -29,36 +29,36 @@ class Player {
 class PlayerModel extends ChangeNotifier {
   final dbHelper = DatabaseHelper.instance;
 
-  late Player _player;
+  Player _player = Player(id: 1, level: 1, score: 0, coins: 0);
 
   Player get player => _player;
 
   Future<void> loadPlayer() async {
-    _player = await dbHelper.getPlayer();
+    _player = await dbHelper.playerDao.getPlayer();
     notifyListeners();
   }
 
   Future<void> addCoins(int coinsToAdd) async {
     _player.coins += coinsToAdd;
-    await dbHelper.updatePlayer(_player);
+    await dbHelper.playerDao.updatePlayer(_player);
     notifyListeners();
   }
 
   Future<void> removeCoins(int coinsToRemove) async {
     _player.coins -= coinsToRemove;
-    await dbHelper.updatePlayer(_player);
+    await dbHelper.playerDao.updatePlayer(_player);
     notifyListeners();
   }
 
   Future<void> addScore(int scoreToAdd) async {
     _player.score += scoreToAdd;
-    await dbHelper.updatePlayer(_player);
+    await dbHelper.playerDao.updatePlayer(_player);
     notifyListeners();
   }
 
   Future<void> removeScore(int scoreToRemove) async {
     _player.score -= scoreToRemove;
-    await dbHelper.updatePlayer(_player);
+    await dbHelper.playerDao.updatePlayer(_player);
     notifyListeners();
   }
 
@@ -67,7 +67,7 @@ class PlayerModel extends ChangeNotifier {
     _player.level = 1;
     _player.coins = 0;
 
-    await dbHelper.updatePlayer(_player);
+    await dbHelper.playerDao.updatePlayer(_player);
     notifyListeners();
   }
 

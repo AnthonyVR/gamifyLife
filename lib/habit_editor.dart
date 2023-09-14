@@ -5,7 +5,7 @@ import 'models/habit.dart'; // Assuming your Habit model is located here
 class HabitEditor extends StatefulWidget {
   final Habit habit;
 
-  HabitEditor({Key? key, required this.habit}) : super(key: key);
+  const HabitEditor({Key? key, required this.habit}) : super(key: key);
 
   @override
   _HabitEditorState createState() => _HabitEditorState();
@@ -92,7 +92,7 @@ class _HabitEditorState extends State<HabitEditor> {
               DatabaseHelper.columnSaturday: days['Saturday']! ? 1 : 0,
               DatabaseHelper.columnSunday: days['Sunday']! ? 1 : 0,
             };
-            int id = await dbHelper.update(row);  // update the habit
+            int id = await dbHelper.habitDao.update(row);  // update the habit
             print('updated row id: $id');
             Navigator.of(context).pop();
           },

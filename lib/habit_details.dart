@@ -39,7 +39,7 @@ class HabitDetailsState extends State<HabitDetails> {
   }
 
    getHabit() async {
-    habit = await dbHelper.getHabitById(widget.id);
+    habit = await dbHelper.habitDao.getHabitById(widget.id);
     setState(() {});  // Trigger a rebuild
   }
 
@@ -106,7 +106,7 @@ class HabitDetailsState extends State<HabitDetails> {
           SizedBox(
             height: 200,
             child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: dbHelper.getHabitHistoryForChart(widget.id),
+              future: dbHelper.habitHistoryDao.getHabitHistoryForChart(widget.id),
               builder: (BuildContext context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
                 if (snapshot.hasData) {
                   history = snapshot.data!;
@@ -122,7 +122,7 @@ class HabitDetailsState extends State<HabitDetails> {
           ),
           Expanded(
               child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: dbHelper.getHabitHistory(widget.id),
+                future: dbHelper.habitHistoryDao.getHabitHistory(widget.id),
                 builder: (BuildContext context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
                   if (snapshot.hasData) {
                     history = snapshot.data!;

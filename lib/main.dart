@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:habit/habit_list.dart';
 import 'package:habit/habit_details.dart';
+import 'package:habit/village_view.dart';
 import 'models/habit.dart';
 import '/services/database_helper.dart';
 import 'habit_creator.dart';
@@ -9,35 +10,40 @@ import 'habit_editor.dart';
 import 'package:intl/intl.dart';
 import 'config/globals.dart';
 import 'models/player.dart';
-import 'village.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'village_view.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /* DB INSPECTEN:
 View -> Tool Windows -> App Inspection -> Database inspector!!!
  */
 
-void main() => runApp(HabitTrackerApp());
-
-void checkAndUpdateDayTable() async {
-
-  final dbHelper = DatabaseHelper.instance;
-
-  final currentDate = DateTime.now().subtract(const Duration(hours: 8));
-  print(currentDate);
-  var formattedDate = DateFormat('yyyy-MM-dd').format(currentDate);
-  final weekday = DateFormat('EEEE').format(currentDate);
-  // Try to retrieve a row from the Day table with the current date
-  var row = await dbHelper.queryDay(formattedDate);
-  // If the row does not exist, insert it
-  if (row.isEmpty) {
-    await dbHelper.insertDay({'date': formattedDate, 'weekday': weekday});
-  }
+void main() {
+  // Initialize FFI
+  sqfliteFfiInit();
+  runApp(HabitTrackerApp());
 }
+// void checkAndUpdateDayTable() async {
+//
+//   final dbHelper = DatabaseHelper.instance;
+//
+//   final currentDate = DateTime.now().subtract(const Duration(hours: 8));
+//   print(currentDate);
+//   var formattedDate = DateFormat('yyyy-MM-dd').format(currentDate);
+//   final weekday = DateFormat('EEEE').format(currentDate);
+//   // Try to retrieve a row from the Day table with the current date
+//   var row = await dbHelper.dayDao.queryDay(formattedDate);
+//   // If the row does not exist, insert it
+//   if (row.isEmpty) {
+//     await dbHelper.dayDao.insertDay({'date': formattedDate, 'weekday': weekday});
+//   }
+// }
 
 class HabitTrackerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    checkAndUpdateDayTable();
+    // checkAndUpdateDayTable();
     return MaterialApp(
       title: 'Gamify Life',
       theme: ThemeData(
@@ -53,6 +59,7 @@ class HabitTrackerApp extends StatelessWidget {
 }
 
 class HomePage extends StatefulWidget {
+
   @override
   _HomePageState createState() => _HomePageState();
 }
@@ -60,7 +67,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
 
   PlayerModel playerModel = PlayerModel();
-  final String appMode = GlobalVariables.appMode; // test | prod
+  //final String appMode = GlobalVariables.appMode; // test | prod
 
   List<Habit> habits = [];
 
@@ -88,8 +95,15 @@ class _HomePageState extends State<HomePage> {
     'Sunday': false,
   };
 
+  void printDbPath() async {
+    var databasesPath = await getDatabasesPath();
+    print(databasesPath);
+  }
+
   @override
   void initState() {
+
+    printDbPath();
     super.initState();
 
     playerModel.loadPlayer();
@@ -130,7 +144,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _goToPreviousDate() async {
-    String previousDateString = await dbHelper.getPreviousDate(DateFormat('yyyy-MM-dd').format(currentDate));
+    String previousDateString = await dbHelper.dayDao.getPreviousDate(DateFormat('yyyy-MM-dd').format(currentDate));
     DateTime previousDate = DateFormat('yyyy-MM-dd').parse(previousDateString);
     if (previousDate != currentDate) {
       updateDate(previousDate);
@@ -138,7 +152,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _goToNextDate() async {
-    String nextDateString = await dbHelper.getNextDate(DateFormat('yyyy-MM-dd').format(currentDate));
+    String nextDateString = await dbHelper.dayDao.getNextDate(DateFormat('yyyy-MM-dd').format(currentDate));
     DateTime nextDate = DateFormat('yyyy-MM-dd').parse(nextDateString);
     if (nextDate != currentDate) {
       updateDate(nextDate);
@@ -150,54 +164,58 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
 
     return Scaffold(
-      backgroundColor: Colors.lightGreenAccent,
-      appBar: AppBar(
-        backgroundColor: appMode == 'test' ? Colors.green : Colors.green,
-        title: Row(
-          children: [
-            Expanded(
-              flex: 6,  // this will allocate 3 parts of the space to this child
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_left),
-                    onPressed: () async {
-                      await _goToPreviousDate();
-                    },
-                  ),
-                  Expanded(  // New line
-                    child: Text(readableDate),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.arrow_right),
-                    onPressed: () async {
-                      await _goToNextDate();
-                    },
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              flex: 2,  // this will allocate 1 part of the space to this child
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: FutureBuilder<int>(
-                  future: dbHelper.getTotalRewardsForToday(date, weekday),
-                  builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return CircularProgressIndicator();  // show loading spinner while waiting
-                    } else if (snapshot.hasError) {
-                      return Text('Error: ${snapshot.error}');  // show error message if there's any error
-                    } else {
-                      return Text('${snapshot.data}');  // display total rewards when data is available
-                    }
-                  },
+      backgroundColor: Color(0xFFb87a3d),
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(50),
+        child: AppBar(
+          backgroundColor: GlobalVariables.appMode == 'test' ? Colors.red : Colors.green,
+          title: Row(
+            children: [
+              Expanded(
+                flex: 6,  // this will allocate 3 parts of the space to this child
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.arrow_left),
+                      onPressed: () async {
+                        await _goToPreviousDate();
+                      },
+                    ),
+                    Expanded(  // New line
+                      child: Text(readableDate),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.arrow_right),
+                      onPressed: () async {
+                        await _goToNextDate();
+                      },
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
-        ),
+              Expanded(
+                flex: 2,  // this will allocate 1 part of the space to this child
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: FutureBuilder<int>(
+                    future: dbHelper.habitHistoryDao.getTotalRewardsForToday(date, weekday),
+                    builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return CircularProgressIndicator();  // show loading spinner while waiting
+                      } else if (snapshot.hasError) {
+                        return Text('Error: ${snapshot.error}');  // show error message if there's any error
+                      } else {
+                        return Text('${snapshot.data}');  // display total rewards when data is available
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+      ),
       ),
       drawer: Drawer(
         child: ListView(
@@ -229,8 +247,8 @@ class _HomePageState extends State<HomePage> {
             ListTile(
               title: Text('Delete habit history'),
               onTap: () {
-                if(appMode == 'test'){
-                  dbHelper.removeAllHabitHistory();
+                if(GlobalVariables.appMode == 'test'){
+                  dbHelper.habitHistoryDao.removeAllHabitHistory();
                 }
                 else {
                   print("cannot remove production data");
@@ -240,8 +258,8 @@ class _HomePageState extends State<HomePage> {
             ListTile(
               title: Text('Delete all habits'),
               onTap: () {
-                if(appMode == 'test'){
-                  dbHelper.removeAllHabits();
+                if(GlobalVariables.appMode == 'test'){
+                  dbHelper.habitDao.removeAllHabits();
                   setState(() {
 
                   });
@@ -254,8 +272,27 @@ class _HomePageState extends State<HomePage> {
             ListTile(
               title: Text('Reset player data'),
               onTap: () {
-                if(appMode == 'test'){
+                if(GlobalVariables.appMode == 'test'){
                   playerModel.resetData();
+                  setState(() {
+                  });
+                }
+                else {
+                  print("cannot remove production data");
+                }
+              },
+            ),
+            ListTile(
+              title: Text('App mode: ${GlobalVariables.appMode}'),
+              onTap: () {
+                if(GlobalVariables.appMode == 'test'){
+                  GlobalVariables.appMode = 'prod';
+                  dbHelper.initDatabase();
+                  setState(() {
+                  });
+                }else if(GlobalVariables.appMode == 'prod'){
+                  GlobalVariables.appMode = 'test';
+                  dbHelper.initDatabase();
                   setState(() {
                   });
                 }
@@ -269,12 +306,12 @@ class _HomePageState extends State<HomePage> {
         )
       ),
       body: FutureBuilder<List<Habit>>(
-        future: dbHelper.getHabits(),
+        future: dbHelper.habitDao.getHabits(),
         builder: (BuildContext context, AsyncSnapshot<List<Habit>> snapshot) {
 
           if (snapshot.hasData) {
             return StreamBuilder<List<Map<String, dynamic>>>(
-              stream: dbHelper.getHabitsForToday(date, weekday).asStream(),
+              stream: dbHelper.habitHistoryDao.getHabitsForToday(date, weekday).asStream(),
               builder: (BuildContext context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
 
                 if (snapshot.hasData) {
@@ -284,85 +321,107 @@ class _HomePageState extends State<HomePage> {
                       bool isCompleted = snapshot.data![index]['completedCount'] >= snapshot.data![index][weekday];
 
                       return ListTile(
-                        title: Row(
-                          children: <Widget>[
-                            SvgPicture.asset('assets/coin.svg',
-                              height: 20,
-                              width: 20,),
-                            Text(
-                              ' ${snapshot.data![index]['reward']}',
-                              style: TextStyle(
-                                // Grey out the habit if it is completed
-                                color: isCompleted ? Colors.grey : Colors.black,
-                              ),
-                            ),
-                            const SizedBox(width: 20),
-                            Expanded(  // Wrap your Text widget with Expanded
-                              child: Text(
-                                '${snapshot.data![index]['title']}',
-                                style: TextStyle(
-                                  color: isCompleted ? Colors.grey : Colors.black,
-                                ),
-                                softWrap: true,  // Optional: this allows the text to wrap onto the next line
-                                //overflow: TextOverflow.ellipsis,  // Optional: this truncates any text that still doesn't fit after wrapping
-                              ),
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.undo_sharp),
-                              onPressed: () {
-                                setState(() {
-                                  playerModel.removeCoins(snapshot.data![index]['reward']);
-                                  playerModel.removeScore(snapshot.data![index]['reward']);
-                                  dbHelper.undo(snapshot.data![index]['_id'], date);
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween, // places the free space evenly between the children
+                          title: Row(
                             children: <Widget>[
-                              Expanded( // Wrap the Row widget with Expanded
+                              Container(
+                                width: 20, // Set width for SVG
+                                child: SvgPicture.asset('assets/coin.svg',
+                                  height: 20,
+                                  width: 20,),
+                              ),
+                              Container(
+                                width: 40, // Set width for Text
+                                child: Text(
+                                  ' ${snapshot.data![index]['reward']}',
+                                  style: TextStyle(
+                                    color: isCompleted ? Colors.grey : Colors.yellow,
+                                    fontSize: 20,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Container(
+                                  child: Text(
+                                    '${snapshot.data![index]['title']}',
+                                    style: TextStyle(
+                                      color: isCompleted ? Colors.grey : Colors.white,
+                                      fontSize: 18,
+                                    ),
+                                    softWrap: true,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                width: 40, // Set width for IconButton
+                                child: IconButton(
+                                  icon: Icon(Icons.undo_outlined,
+                                      color: isCompleted ? Colors.grey : Colors.white, size: 20),
+                                  onPressed: () {
+                                    setState(() {
+                                      playerModel.removeCoins(snapshot.data![index]['reward']);
+                                      playerModel.removeScore(snapshot.data![index]['reward']);
+                                      dbHelper.habitHistoryDao.undo(snapshot.data![index]['_id'], date);
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          trailing: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: <Widget>[
+                              Expanded(
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: <Widget>[
-                                    Text('x${snapshot.data![index]['completedCount']} = '),
-
-                                    SvgPicture.asset(
-                                      'assets/coins.svg',
-                                      height: 20,
-                                      width: 20,
+                                    Container(
+                                      width: 30, // Set width for Text
+                                      child: Text('x${snapshot.data![index]['completedCount']} = ',
+                                          style: TextStyle(
+                                              color: isCompleted ? Colors.grey : Colors.black)),
                                     ),
-                                    Text(' ${snapshot.data![index]['reward'] * snapshot.data![index]['completedCount']} '),
+                                    Container(
+                                      width: 20, // Set width for SVG
+                                      child: SvgPicture.asset(
+                                        'assets/coins.svg',
+                                        height: 20,
+                                        width: 20,
+                                      ),
+                                    ),
+                                    Container(
+                                      width: 28, // Set width for Text
+                                      child: Text(
+                                          ' ${snapshot.data![index]['reward'] * snapshot.data![index]['completedCount']} ',
+                                          style: TextStyle(
+                                              color: isCompleted ? Colors.grey : Colors.black)),
+                                    ),
                                   ],
                                 ),
                               ),
                             ],
-                        ),
-
-                        onTap: isCompleted ? null : () async {
-
-                          // insert the habit completion into the Habit_History table
-                          await DatabaseHelper.instance.insertHabitCompletion({
+                          ),
+                          onTap: isCompleted ? null : () async {
+                            // insert the habit completion into the Habit_History table
+                            await DatabaseHelper.instance.habitHistoryDao.insertHabitCompletion({
                             DatabaseHelper.columnHabitID: snapshot.data![index]['_id'],
                             DatabaseHelper.columnDate: date,
                             DatabaseHelper.columnCount: 1,
-                          });
+                            });
 
-                          // update the coins in the player table
-                          await playerModel.addCoins(snapshot.data![index]['reward']);
-                          await playerModel.addScore(snapshot.data![index]['reward']);
+                            // update the coins in the player table
+                            await playerModel.addCoins(snapshot.data![index]['reward']);
+                            await playerModel.addScore(snapshot.data![index]['reward']);
 
-                          setState(() {
-                          });
-
-                        },
-                        onLongPress: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => HabitDetails(id: snapshot.data![index]['_id'])),
-                          );
-                        }
+                            setState(() {
+                            });
+                            // Your onTap code here
+                          },
+                          onLongPress: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => HabitDetails(id: snapshot.data![index]['_id'])),
+                            );
+                          }
                       );
                     },
                   );
@@ -424,7 +483,7 @@ class _HomePageState extends State<HomePage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => Village(),
+                            builder: (context) => VillageView(),
                             fullscreenDialog: true, // make the page full screen
                           ),
                         );

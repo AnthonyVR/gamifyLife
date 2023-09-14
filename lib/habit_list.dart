@@ -51,7 +51,7 @@ class HabitListState extends State<HabitList> {
       ),
 
       body: FutureBuilder<List<Habit>>(
-        future: dbHelper.getHabits(),
+        future: dbHelper.habitDao.getHabits(),
         builder: (BuildContext context, AsyncSnapshot<List<Habit>> snapshot) {
           if (snapshot.hasData) {
             habits = snapshot.data!;
@@ -86,7 +86,7 @@ class HabitListState extends State<HabitList> {
                     icon: Icon(Icons.delete),
                     onPressed: () {
                       setState(() {
-                        dbHelper.delete(habits[index].id);  // delete the habit from the database
+                        dbHelper.habitDao.delete(habits[index].id);  // delete the habit from the database
                         habits.removeAt(index);  // remove the habit from the list
                       });
                     },
