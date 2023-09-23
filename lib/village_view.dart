@@ -17,6 +17,8 @@ class _VillageViewState extends State<VillageView> {
   final String grassImage = 'assets/village_package/tiles/medievalTile_57.png';
   final String rock = 'assets/village_package/environment/medievalEnvironment_07.png';
 
+  int? _unitIdToPlace;
+
   int gridSizeWidth = 1;
   int gridSizeHeight = 1;
   List<List<Map<String, dynamic>>> tileMap = [];
@@ -169,21 +171,15 @@ class _VillageViewState extends State<VillageView> {
             imagePath = tileMap[row]![column]!['imagePath'];
           }
 
-          return GestureDetector(
-            onTap: () {
-              print("test");
+          return InkWell(
+            onTap: () async {
               print(row);
               print(column);
               if(tileMap.containsKey(row) && tileMap[row]!.containsKey(column)) {
                 String objectName = tileMap[row]![column]!['objectName'];
                 if (objectName == 'barracks') {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => BarracksView(villageId: 1),
-                      fullscreenDialog: true, // make the page full screen
-                    ),
-                  );
+                  await _navigateToBarracksAndGetUnit();
+
                 } else if (objectName == 'farm') {
                   Navigator.push(
                     context,
@@ -193,8 +189,30 @@ class _VillageViewState extends State<VillageView> {
                     ),
                   );
                 }
+              } else {
+
+                // For when you want to place a unit in the village, coming from the barracks
+                if (_unitIdToPlace != null) {
+                  placeUnitInVillage(_unitIdToPlace, row, column);
+
+                  setState(() {
+                    _unitIdToPlace = null;
+                  });
+                  await _navigateToBarracksAndGetUnit();
+
+                }
               }
             },
+
+            onLongPress: () async {
+              if(tileMap.containsKey(row) && tileMap[row]!.containsKey(column)) {
+                String contentType = tileMap[row]![column]!['contentType'];
+                if (contentType == 'unit') {
+                  print("logic");
+                }
+              }
+            },
+
             child: imagePath != null
                 ? Image.asset(imagePath, fit: BoxFit.cover)
                 : Container(),  // Display an empty container if there's no tile.
@@ -204,6 +222,42 @@ class _VillageViewState extends State<VillageView> {
     );
   }
 
+  // This function makes you go to the barracks and is necessary for
+  // being able to place a unit in the village. It adds a listener for
+  // a unit id, to make it possible to use the place unit button from the barracks.
+  Future<void> _navigateToBarracksAndGetUnit() async {
+    var result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BarracksView(villageId: 1),
+        fullscreenDialog: true, // make the page full screen
+      ),
+    );
+
+    if (result != null && result['unit_id'] != null) {
+      setState(() {
+        _unitIdToPlace = result['unit_id'];
+        print('unit to place');
+        print(_unitIdToPlace);
+      });
+    }
+  }
+
+  Future<void> placeUnitInVillage(int? id, int row, int column) async {
+    if (id == null) {
+      throw Exception();
+    }
+
+    Village? village = await Village.getVillageById(1);
+    if (village == null) {
+      throw Exception('Village with ID ${1} not found');
+    }
+
+    print("placing now");
+    print(row);
+    print(column);
+    village.placeUnitInVillage(id, row, column);
+  }
 
   Future<Village?> _getVillage() async {
     final db = await DatabaseHelper.instance.database;

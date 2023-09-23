@@ -25,6 +25,7 @@ class Unit {
     required this.amount
   });
 
+
   // Convert a Unit to a Map
   Map<String, dynamic> toMap() {
     return {
@@ -40,7 +41,9 @@ class Unit {
     };
   }
 
+
   Future<Database> get _db async => await DatabaseHelper.instance.database;
+
 
   // Convert a Map to a Unit
   static Unit fromMap(Map<String, dynamic> map) {
@@ -57,7 +60,6 @@ class Unit {
     );
   }
 
-  // DATABASE OPERATIONS
 
   static Future<void> createTable(db) async {
     await db.execute('''
@@ -76,11 +78,13 @@ class Unit {
     ''');
   }
 
+
   Future<int> insertToDb() async {
     Database db = await _db;
 
     return await db.insert('units', toMap());
   }
+
 
   Future<int> levelUp() async {
     final db = await DatabaseHelper.instance.database;
@@ -97,6 +101,7 @@ class Unit {
     );
   }
 
+
   Future<int> addToAmount() async {
     final db = await DatabaseHelper.instance.database;
 
@@ -111,6 +116,7 @@ class Unit {
       whereArgs: [id],
     );
   }
+
 
   static Future<Unit> getUnitById(int id) async {
     final db = await DatabaseHelper.instance.database;

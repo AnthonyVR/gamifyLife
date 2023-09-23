@@ -32,30 +32,6 @@ class Village {
   }
 
 
-  // static Future<Village?> getVillageById(int villageId) async {
-  //   final db = await DatabaseHelper.instance.database;
-  //
-  //   // Query the database for the village with the specified ID
-  //   final List<Map<String, dynamic>> maps = await db.query(
-  //     'villages',  // Assuming the table name is 'villages'
-  //     where: 'id = ?',
-  //     whereArgs: [villageId],
-  //   );
-  //
-  //   // Convert the List<Map<String, dynamic>> into a Village object
-  //   if (maps.isNotEmpty) {
-  //     return Village(
-  //       id: maps[0]['id'],
-  //       name: maps[0]['name'],
-  //       owned: maps[0]['owned'],
-  //       // Note: The tiles list is set to its default empty list.
-  //       // You would need an additional query to fill this list if necessary.
-  //     );
-  //   }
-  //
-  //   return null; // Return null if the village is not found
-  // }
-
   Future<Map<int, Map<int, Map<String, dynamic>>>> fetchTiles() async {
     List<Map<String, dynamic>> tilesList = await this.getTiles();
 
@@ -160,6 +136,7 @@ class Village {
     return await db.insert('units', unit.toMap());
   }
 
+
   Future<int> levelUpUnit(int id) async {
     final db = await DatabaseHelper.instance.database;
 
@@ -170,6 +147,7 @@ class Village {
     return await unit.levelUp();
 
   }
+
 
   Future<int> addUnit(int id) async {
     final db = await DatabaseHelper.instance.database;
@@ -328,6 +306,13 @@ class Village {
         amount: maps[i]['amount'],
       );
     });
+  }
+
+  Future<void> placeUnitInVillage(int id, int row, int column) async {
+
+    Tile tile = Tile(rowNum: row, columnNum: column, contentType: 'unit', contentId: 1);
+
+    addTile(tile);
   }
 
 }

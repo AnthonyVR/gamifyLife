@@ -52,7 +52,6 @@ class _BarracksViewState extends State<BarracksView> {
     village.addUnit(id);
   }
 
-
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -148,6 +147,7 @@ class _BarracksViewState extends State<BarracksView> {
                         ),
                       ),
                       // 3rd Column: Create and Place in Village buttons
+                      // 3rd Column: Create and Place in Village buttons
                       Expanded(
                         flex: 2,
                         child: Column(
@@ -164,23 +164,6 @@ class _BarracksViewState extends State<BarracksView> {
                                   color: Colors.green, // This will be the color of the button's background
                                   padding: EdgeInsets.zero,
                                 ),
-                                // Container(
-                                //   height: 50, // Adjust as needed
-                                //   width: 50,  // Adjust as needed
-                                //   child: ElevatedButton(
-                                //       onPressed: () {
-                                //         levelUpUnit(unit.id);
-                                //         setState(() {});
-                                //       },
-                                //       style: ButtonStyle(
-                                //         backgroundColor: MaterialStateProperty.all(Colors.green),
-                                //         padding: MaterialStateProperty.all(EdgeInsets.zero),
-                                //       ),
-                                //       child: Center(
-                                //         child: Text('+', style: TextStyle(fontSize: 50)),
-                                //       )
-                                //   ),
-                                // ),
                                 SizedBox(width: 10.0),
                                 SvgPicture.asset(
                                   'assets/coins.svg',
@@ -194,7 +177,8 @@ class _BarracksViewState extends State<BarracksView> {
                             SizedBox(height: 8.0),
                             ElevatedButton(
                               onPressed: () {
-                                
+                                Navigator.pop(context, {'unit_id': unit.id});
+                                //placeUnitInVillage(unit.id);
                               },
                               child: Text('Place in Village'),
                             ),
