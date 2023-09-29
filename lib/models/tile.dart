@@ -6,8 +6,8 @@ import 'package:sqflite/sqflite.dart';
 class Tile {
   final int? id;
   int? villageId;
-  final int rowNum;
-  final int columnNum;
+  int rowNum;
+  int columnNum;
   final String contentType;  // 'unit', 'building', or 'misc_object'
   final int contentId;
 

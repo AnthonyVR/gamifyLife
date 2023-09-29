@@ -10,12 +10,16 @@ class Village {
   int id;
   String name;
   int owned;
+  final int row;
+  final int column;
   List<Tile> tiles = [];  // A list to store the tiles associated with this village
 
   Village({
     required this.id,
     required this.name,
     required this.owned,
+    required this.row,
+    required this.column,
     this.tiles = const [],  // Optionally accept a list of tiles in the constructor
   });
 
@@ -59,13 +63,41 @@ class Village {
       CREATE TABLE villages (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           name TEXT,
-          owned INTEGER
+          owned INTEGER,
+          row INTEGER,
+          column INTEGER
       )
     ''');
   }
 
+  // Extract a Village object from a Map object
+  factory Village.fromMap(Map<String, dynamic> map) {
+    return Village(
+      id: map['id'],
+      name: map['name'],
+      owned: map['owned'],
+      row: map['row'],
+      column: map['column']
+    );
+  }
 
-  static Future<void> createInitialVillage(db) async {
+  // Convert a Village object into a Map object
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'owned': owned,
+      'row': row,
+      'column': column
+    };
+  }
+
+
+  static Future<void> createInitialVillage(int row, int column, bool owned) async {
+
+    final db = await DatabaseHelper.instance.database;
+    
+    await db.execute("DELETE FROM tiles");
 
     for (int i = 1; i <= 7; i++) {
       if(i != 4) {
@@ -201,28 +233,7 @@ class Village {
     return maps;
   }
 
-
-  // Extract a Village object from a Map object
-  factory Village.fromMap(Map<String, dynamic> map) {
-    return Village(
-      id: map['id'],
-      name: map['name'],
-      owned: map['owned'],
-    );
-  }
-
-
-  // Convert a Village object into a Map object
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'owned': owned,
-    };
-  }
-
-
-  Future<int?> getCapacity() async {
+  Future<int?> getBuildingLevel(String buildingName) async {
 
     final db = await DatabaseHelper.instance.database;
 
@@ -230,22 +241,42 @@ class Village {
     final List<Map<String, dynamic>> maps = await db.rawQuery('''
     SELECT level 
     FROM buildings 
-    WHERE village_id = ? AND name = 'farm'
-  ''', [id]);
+    WHERE village_id = ? AND name = ?
+  ''', [id, buildingName]);
 
     int level = maps.first['level'];
-    print(level);
 
-    int capacity = 1 + (pow(2.11, pow(level, 0.5))).toInt();
-
-
-    // Check if the result is not empty and return the level
-    if (maps.isNotEmpty) {
-      return capacity;
-    }
-    return null; // Return null if no such building found
+    return level;
   }
 
+  Future<void> upgradeBuildingLevel(String buildingName) async {
+    final db = await DatabaseHelper.instance.database;
+
+    // First, retrieve the current level.
+    int? currentLevel = await getBuildingLevel(buildingName);
+
+    // Check if currentLevel is not null (i.e., a valid level was found).
+    if (currentLevel != null) {
+      // Update the level in the database.
+      await db.rawUpdate('''
+      UPDATE buildings 
+      SET level = ? 
+      WHERE village_id = ? AND name = ?
+    ''', [currentLevel + 1, id, buildingName]);
+    } else {
+      // Handle error: for example, building not found for the given villageId and buildingName.
+      throw Exception('Building $buildingName not found for villageId $id');
+    }
+  }
+
+  Future<int?> getCapacity() async {
+
+    int? level = await getBuildingLevel('farm');
+    int capacity = (pow(2.5, pow(level!, 0.5))).round();
+
+    return capacity;
+
+  }
 
   Future<int?> getPopulation() async {
     final db = await DatabaseHelper.instance.database;
@@ -264,7 +295,6 @@ class Village {
     return null; // Return null if no such units found
   }
 
-
   Future<void> addTile(Tile tile) async {
     final db = await DatabaseHelper.instance.database;
 
@@ -278,6 +308,38 @@ class Village {
     await db.insert('tiles', tileMap);
   }
 
+  Future<void> removeTile(Tile tile) async {
+    final db = await DatabaseHelper.instance.database;
+
+    // Assuming each Tile has a unique ID, use it to delete the tile from the database.
+    // If you don't have an ID, you might use other unique fields like a combination of row_num and column_num.
+
+    await db.delete(
+      'tiles',
+      where: 'id = ?',
+      whereArgs: [tile.id],
+    );
+  }
+
+  // move a tile to another location (row and column) on the map
+  Future<void> moveTile(Tile tile, int newRow, int newColumn) async {
+    final db = await DatabaseHelper.instance.database;
+
+    // Update the tile's properties in memory
+    tile.rowNum = newRow;
+    tile.columnNum = newColumn;
+
+    // Convert the updated Tile object to a map (assuming you have a toMap() function in the Tile class)
+    Map<String, dynamic> updatedTileMap = tile.toMap();
+
+    // Update the tile in the database using its ID as the reference
+    await db.update(
+      'tiles',
+      updatedTileMap,
+      where: 'id = ?',
+      whereArgs: [tile.id],
+    );
+  }
 
   Future<List<Unit>> getUnits() async {
     final db = await DatabaseHelper.instance.database;
@@ -308,11 +370,92 @@ class Village {
     });
   }
 
-  Future<void> placeUnitInVillage(int id, int row, int column) async {
+  Future<Tile?> getTileByRowAndColumn(int row, int column) async {
+    final db = await DatabaseHelper.instance.database;
 
-    Tile tile = Tile(rowNum: row, columnNum: column, contentType: 'unit', contentId: 1);
+    List<Map<String, dynamic>> results = await db.query(
+      'tiles',
+      where: 'row_num = ? AND column_num = ?',
+      whereArgs: [row, column],
+    );
+
+    // If no results were found, return null
+    if (results.isEmpty) {
+      return null;
+    }
+
+    // Assuming Tile has a factory method fromMap to create an instance from a Map
+    return Tile.fromMap(results.first);
+  }
+
+  Future<void> placeTileInVillage(int id, int row, int column, String type) async {
+
+    Tile tile = Tile(rowNum: row, columnNum: column, contentType: type, contentId: 1);
 
     addTile(tile);
+  }
+
+  Future<void> removeTileByRowAndColumn(int row, int column, [String? type]) async {
+    final db = await DatabaseHelper.instance.database;
+
+    String whereClause;
+    List<dynamic> whereArgs;
+
+    if (type == null) {
+      whereClause = 'row_num = ? AND column_num = ?';
+      whereArgs = [row, column];
+    } else {
+      whereClause = 'row_num = ? AND column_num = ? AND content_type = ?';
+      whereArgs = [row, column, type];
+    }
+
+    await db.delete(
+      'tiles',
+      where: whereClause,
+      whereArgs: whereArgs,
+    );
+  }
+
+  // MAP //
+
+  static Future<List<Map<String, dynamic>>> getVillages() async {
+    final db = await DatabaseHelper.instance.database;
+
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+      SELECT 
+        id AS tileId,
+        row AS rowNum,
+        column AS columnNum
+      FROM villages;
+      ''');
+
+    print('printing maps');
+    print(maps);
+
+    return maps;
+  }
+
+  static Future<Map<int, Map<int, Map<String, dynamic>>>> fetchVillages() async {
+    List<Map<String, dynamic>> tilesList = await getVillages();
+
+    // Initializing an empty nested map structure.
+    Map<int, Map<int, Map<String, dynamic>>> resultMap = {};
+
+    // Iterate over each tile and populate the resultMap.
+    for (var tile in tilesList) {
+      int rowNum = tile['rowNum'];
+      int columnNum = tile['columnNum'];
+
+      if (!resultMap.containsKey(rowNum)) {
+        resultMap[rowNum] = {};
+      }
+
+      resultMap[rowNum]![columnNum] = tile;
+    }
+
+    print('printing resultmap');
+    print(resultMap);
+    return resultMap;
   }
 
 }

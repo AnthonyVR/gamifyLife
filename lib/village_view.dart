@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:habit/barracks_view.dart';
 import 'package:habit/farm_view.dart';
+import 'package:habit/villageAppBar.dart';
 import '../models/tile.dart';
 import '../services/database_helper.dart';
 import 'models/village.dart';
@@ -14,10 +15,14 @@ class VillageView extends StatefulWidget {
 
 class _VillageViewState extends State<VillageView> {
 
+  int villageId = 1;
+
   final String grassImage = 'assets/village_package/tiles/medievalTile_57.png';
   final String rock = 'assets/village_package/environment/medievalEnvironment_07.png';
 
   int? _unitIdToPlace;
+  int? _initialRow;
+  int? _initialColumn;
 
   int gridSizeWidth = 1;
   int gridSizeHeight = 1;
@@ -30,6 +35,9 @@ class _VillageViewState extends State<VillageView> {
   void initState() {
     super.initState();
     _villageFuture = Village.getVillageById(1);
+
+    //this code should be changed later to implement multiple village functionality!
+    villageId = 1;
   }
 
   @override
@@ -44,76 +52,21 @@ class _VillageViewState extends State<VillageView> {
     gridSizeWidth = (screenWidth / tileSize).floor();
     gridSizeHeight = (screenHeight / tileSize).floor();
 
-    // print("gridsizewidth");
-    // print(gridSizeWidth);
-    //
-    // print("gridsizeheight");
-    // print(gridSizeHeight);
-
     tileMap = List.generate(gridSizeHeight,
             (i) => List.generate(gridSizeWidth, (j) => {}));
 
 
     //_populateVillage();
+    // print("creating initial village");
+    // Village.createInitialVillage();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFb87a3d),
-        title: FutureBuilder<Village?>(
-          future: _getVillage(),
-          builder: (context, villageSnapshot) {
-            if (villageSnapshot.connectionState == ConnectionState.done) {
-              if (villageSnapshot.hasError) {
-                return Text('Error');
-              }
-              if (!villageSnapshot.hasData || villageSnapshot.data == null) {
-                return Text('No Village Data');
-              }
-
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(villageSnapshot.data!.name),
-                  FutureBuilder<int?>(
-                    future: villageSnapshot.data!.getPopulation(),
-                    builder: (context, populationSnapshot) {
-                      if (populationSnapshot.connectionState == ConnectionState.done) {
-                        if (!populationSnapshot.hasData || populationSnapshot.data == null) {
-                          return Text('(No population data)');
-                        }
-                        return FutureBuilder<int?>(
-                          future: villageSnapshot.data!.getCapacity(),
-                          builder: (context, capacitySnapshot) {
-                            if (capacitySnapshot.connectionState == ConnectionState.done) {
-                              if (!capacitySnapshot.hasData || capacitySnapshot.data == null) {
-                                return Text('${populationSnapshot.data} / (No capacity data)');
-                              }
-                              return Text('${populationSnapshot.data} / ${capacitySnapshot.data}');
-                            } else {
-                              return CircularProgressIndicator();
-                            }
-                          },
-                        );
-                      } else {
-                        return CircularProgressIndicator();
-                      }
-                    },
-                  )
-                ],
-              );
-
-            } else {
-              return CircularProgressIndicator();
-            }
-          },
-        ),
+      appBar: VillageAppBar(
+        getVillage: _getVillage,
       ),
-
-
-
       body: FutureBuilder<Village?>(
         future: _villageFuture,
         builder: (BuildContext context, AsyncSnapshot<Village?> villageSnapshot) {
@@ -171,52 +124,103 @@ class _VillageViewState extends State<VillageView> {
             imagePath = tileMap[row]![column]!['imagePath'];
           }
 
-          return InkWell(
-            onTap: () async {
-              print(row);
-              print(column);
-              if(tileMap.containsKey(row) && tileMap[row]!.containsKey(column)) {
-                String objectName = tileMap[row]![column]!['objectName'];
-                if (objectName == 'barracks') {
-                  await _navigateToBarracksAndGetUnit();
+          return DragTarget<Map<String, dynamic>>(
+            builder: (context, candidateData, rejectedData) {
+              return InkWell(
+                onTap: () async {
+                  print(row);
+                  print(column);
+                  if(tileMap.containsKey(row) && tileMap[row]!.containsKey(column)) {
+                    String objectName = tileMap[row]![column]!['objectName'];
+                    if (objectName == 'barracks') {
+                      await _navigateToBarracksAndGetUnit();
 
-                } else if (objectName == 'farm') {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FarmView(),
-                      fullscreenDialog: true, // make the page full screen
-                    ),
-                  );
-                }
-              } else {
+                    } else if (objectName == 'farm') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FarmView(),
+                          fullscreenDialog: true, // make the page full screen
+                        ),
+                      );
+                    }
+                  } else {
 
-                // For when you want to place a unit in the village, coming from the barracks
-                if (_unitIdToPlace != null) {
-                  placeUnitInVillage(_unitIdToPlace, row, column);
+                    // For when you want to place a unit in the village, coming from the barracks
+                    if (_unitIdToPlace != null) {
+                      placeUnitInVillage(_unitIdToPlace, row, column);
 
-                  setState(() {
-                    _unitIdToPlace = null;
-                  });
-                  await _navigateToBarracksAndGetUnit();
+                      setState(() {
+                        _unitIdToPlace = null;
+                      });
+                      await _navigateToBarracksAndGetUnit();
 
-                }
-              }
+                    }
+                  }
+                },
+
+                onLongPress: () async {
+
+                  if(tileMap.containsKey(row) && tileMap[row]!.containsKey(column)) {
+                    String contentType = tileMap[row]![column]!['contentType'];
+                    if (contentType == 'unit') {
+                      print("logic");
+                    }
+                  }
+                },
+                child: tileMap.containsKey(row) && tileMap[row]!.containsKey(column)
+                    ? LongPressDraggable<Map<String, dynamic>>(
+                  data: {
+                    'row': row,
+                    'column': column,
+                    ...tileMap[row]![column]!,
+                  },
+                  child: Image.asset(tileMap[row]![column]!['imagePath'], fit: BoxFit.cover),
+                  feedback: Material(
+                    child: Image.asset(tileMap[row]![column]!['imagePath'], fit: BoxFit.cover),
+                    elevation: 4.0,
+                  ),
+                  onDragStarted: () {
+                    _initialRow = row;
+                    _initialColumn = column;
+                    print("setting initiali row");
+                    print(_initialRow);
+                  },
+                )
+                    : Container(), // Display an empty container if there's no tile.
+              );
             },
-
-            onLongPress: () async {
-              if(tileMap.containsKey(row) && tileMap[row]!.containsKey(column)) {
-                String contentType = tileMap[row]![column]!['contentType'];
-                if (contentType == 'unit') {
-                  print("logic");
-                }
-              }
+            onWillAccept: (data) {
+              // Decide if you will accept the dragged unit on this tile
+              return !tileMap.containsKey(row) || !tileMap[row]!.containsKey(column) || (row == 3 && column == 6);
             },
+            onAccept: (data) async {
 
-            child: imagePath != null
-                ? Image.asset(imagePath, fit: BoxFit.cover)
-                : Container(),  // Display an empty container if there's no tile.
+              print('accepting!');
+
+              // Handle the accepted drag. Update your state to move the unit to the new position.
+
+              if (_initialRow != null && _initialColumn != null) {
+
+                if(row == 3 && column == 6){
+                  print("removing unit");
+                  await removeUnitFromVillage(_initialRow!, _initialColumn!);
+                } else{
+                  await moveUnit(1, row, column);
+
+                }
+                _initialRow = null;
+                _initialColumn = null;
+              }
+
+              setState(() {
+
+                // ... any additional logic you might want to add for handling the drop
+
+              });
+            },
           );
+
         },
       ),
     );
@@ -244,23 +248,31 @@ class _VillageViewState extends State<VillageView> {
   }
 
   Future<void> placeUnitInVillage(int? id, int row, int column) async {
-    if (id == null) {
-      throw Exception();
+
+    _village?.placeTileInVillage(id!, row, column, "unit");
+  }
+
+  Future<void> removeUnitFromVillage(int row, int column) async {
+
+    Tile? selectedUnit = await _village?.getTileByRowAndColumn(_initialRow!, _initialColumn!);
+
+    if(selectedUnit?.contentType == 'unit') {
+      _village?.removeTile(selectedUnit!);
+    }
+  }
+
+
+  Future<void> moveUnit(int id, int destinationRow, int destinationColumn) async {
+
+    Tile? selectedUnit = await _village?.getTileByRowAndColumn(_initialRow!, _initialColumn!);
+
+    if(selectedUnit?.contentType == 'unit'){
+      await _village?.moveTile(selectedUnit!, destinationRow, destinationColumn);
     }
 
-    Village? village = await Village.getVillageById(1);
-    if (village == null) {
-      throw Exception('Village with ID ${1} not found');
-    }
-
-    print("placing now");
-    print(row);
-    print(column);
-    village.placeUnitInVillage(id, row, column);
   }
 
   Future<Village?> _getVillage() async {
-    final db = await DatabaseHelper.instance.database;
     return await Village.getVillageById(1);
   }
 }

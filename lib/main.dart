@@ -11,7 +11,7 @@ import 'package:intl/intl.dart';
 import 'config/globals.dart';
 import 'models/player.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'village_view.dart';
+import 'map_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /* DB INSPECTEN:
@@ -497,7 +497,29 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
               ),
-              const Expanded(child: SizedBox()), // This is to take up the remaining space on the right side.
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MapView(),
+                            fullscreenDialog: true, // make the page full screen
+                          ),
+                        );
+                      },
+                      child: Image.asset(
+                        'assets/map.png',
+                        height: 60,
+                        width: 60,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),

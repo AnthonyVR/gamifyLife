@@ -216,7 +216,7 @@ class DatabaseHelper {
     await MiscObject.createTable(db);
 
     // CREATE INITIAL VILLAGE WITH ALL OF ITS INITIAL TILES, UNITS, AND BUILDINGS AND OBJECTS
-    await Village.createInitialVillage(db);
+    await Village.createInitialVillage(100, 100, true);
 
   }
 
@@ -225,7 +225,7 @@ class DatabaseHelper {
 
     print('Database version changed - Running _onUpgrade()...');
     if (oldVersion < 9) {
-      await Village.createInitialVillage(db);
+      await Village.createInitialVillage(100, 100, true);
     }
   }
 
