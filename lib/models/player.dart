@@ -24,6 +24,24 @@ class Player {
       'coins': coins,
     };
   }
+
+  static Future<void> createTable(db) async {
+
+    await db.execute('''
+      CREATE TABLE player (
+        id INTEGER PRIMARY KEY,
+        level INTEGER NOT NULL,
+        score INTEGER NOT NULL,
+        coins INTEGER NOT NULL
+      )
+    ''');
+  }
+
+  static Future<int> insertPlayer(db, Player player) async {
+
+    return await db.insert('player', player.toMap());
+  }
+
 }
 
 class PlayerModel extends ChangeNotifier {

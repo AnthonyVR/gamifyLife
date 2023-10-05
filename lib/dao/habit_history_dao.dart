@@ -20,7 +20,14 @@ class HabitHistoryDao {
 
   Future<List<Map<String, dynamic>>> getHabitsForToday(String date, String weekday) async {
     Database db = await dbHelper.database;
-    var res = await db.rawQuery('''
+
+    // Check if both tables exist
+    List<Map> habitsTableExists = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name=?", [DatabaseHelper.habitsTable]);
+    List<Map> habitHistoryTableExists = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name=?", [DatabaseHelper.habitHistoryTable]);
+
+    if (habitsTableExists.isNotEmpty && habitHistoryTableExists.isNotEmpty) {
+
+      var res = await db.rawQuery('''
       SELECT ${DatabaseHelper.habitsTable}.*, COUNT(${DatabaseHelper.habitHistoryTable}.${DatabaseHelper.columnHabitID}) as completedCount,
       SUM(CASE 
           WHEN ${DatabaseHelper.habitHistoryTable}.${DatabaseHelper.columnDate} IS NOT NULL THEN ${DatabaseHelper.habitsTable}.${DatabaseHelper.columnReward}
@@ -35,14 +42,19 @@ class HabitHistoryDao {
       GROUP BY ${DatabaseHelper.habitsTable}.${DatabaseHelper.columnId}
     ''', [date, date]);
 
-    // print resulting table for debugging
-    // res.forEach((Map<String, dynamic> row) {
-    //   print("current table:");
-    //   print(row.entries.map((e) => '${e.key}: ${e.value}').join(', '));
-    // });
+      // print resulting table for debugging
+      // res.forEach((Map<String, dynamic> row) {
+      //   print("current table:");
+      //   print(row.entries.map((e) => '${e.key}: ${e.value}').join(', '));
+      // });
 
-    return res;
+      return res;
+    }
+
+    // Return an empty list if one or both tables don't exist
+    return [];
   }
+
 
   Future<List<Map<String, dynamic>>> getHabitHistory(int id) async {
     Database db = await dbHelper.database;
@@ -110,6 +122,8 @@ class HabitHistoryDao {
     );
 
     if (result.isNotEmpty) {
+
+      print("row is found");
       // If a row is found, delete it
       return await db.delete(
         DatabaseHelper.habitHistoryTable,

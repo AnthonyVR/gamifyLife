@@ -5,6 +5,10 @@ import 'package:habit/villageAppBar.dart';
 import 'models/village.dart';
 
 class FarmView extends StatefulWidget {
+
+  FarmView({required this.villageId});
+  final int villageId;
+
   @override
   _FarmViewState createState() => _FarmViewState();
 }
@@ -119,7 +123,7 @@ class _FarmViewState extends State<FarmView> {
   }
 
   Future<Village?> _getVillage() async {
-    return await Village.getVillageById(1);
+    return await Village.getVillageById(widget.villageId);
   }
 
   Future<void> fetchVillageData() async {

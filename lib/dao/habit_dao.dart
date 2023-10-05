@@ -10,10 +10,19 @@ class HabitDao {
 
   Future<List<Habit>> getHabits() async {
     Database db = await dbHelper.database;
-    var res = await db.query(DatabaseHelper.habitsTable);
-    List<Habit> list = res.isNotEmpty ? res.map((c) => Habit.fromMap(c)).toList().cast<Habit>() : [];
-    return list;
+
+    // Check if the table exists
+    List<Map> tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name=?", [DatabaseHelper.habitsTable]);
+    if (tables != null && tables.length > 0) {
+      var res = await db.query(DatabaseHelper.habitsTable);
+      List<Habit> list = res.isNotEmpty ? res.map((c) => Habit.fromMap(c)).toList().cast<Habit>() : [];
+      return list;
+    }
+
+    // Return an empty list if the table doesn't exist
+    return [];
   }
+
 
   Future<Habit?> getHabitById(int id) async {
     Database db = await dbHelper.database;

@@ -1,5 +1,6 @@
 import 'dart:ffi';
 
+import 'package:habit/models/attack.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
@@ -13,6 +14,7 @@ import '../dao/player_dao.dart';
 import '../dao/village_dao.dart';
 
 // Import classes
+import '../models/player.dart';
 import '../models/tile.dart';
 import '../models/building.dart';
 import '../models/unit.dart';
@@ -53,7 +55,7 @@ class DatabaseHelper {
   // HABITS TABLE
   static String habitsTable = 'habits';
 
-  static final columnId = '_id';
+  static final columnId = 'id';
   static final columnTitle = 'title';
   static final columnReward = 'reward';
   static const columnMonday = 'monday';
@@ -115,6 +117,7 @@ class DatabaseHelper {
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await initDatabase();
+    print("debugging test 2");
     return _database!;
   }
 
@@ -140,10 +143,19 @@ class DatabaseHelper {
     }
 
     String path = join(await getDatabasesPath(), _databaseName);
-    return await openDatabase(path, version: _databaseVersion, onCreate: _onCreate, onUpgrade: _onUpgrade);
+    return await openDatabase(path, version: _databaseVersion, onCreate: _onCreate); //, onUpgrade: _onUpgrade
   }
 
   Future _onCreate(Database db, int version) async {
+
+    await createInitialDatabase();
+
+  }
+
+  Future createInitialDatabase() async {
+
+    final db = await database;
+
     await db.execute('''
           CREATE TABLE $habitsTable (
             $columnId INTEGER PRIMARY KEY,
@@ -178,73 +190,80 @@ class DatabaseHelper {
           )
     ''');
 
-
-    await db.execute('''
-          CREATE TABLE player (
-            $columnPlayerId INTEGER PRIMARY KEY,
-            $columnLevel INTEGER,
-            $columnScore INTEGER,
-            $columnCoins INTEGER
-          )
-    ''');
-
-
-    // await db.execute('''
-    //       CREATE TABLE $villagesTable (
-    //         $columnId INTEGER PRIMARY KEY,
-    //         $columnName TEXT,
-    //         $columnTownCenter INTEGER,
-    //         $columnBarracks INTEGER,
-    //         $columnFarm INTEGER
-    //       )
-    //    ''');
-    await db.insert(
-      villagesTable,
-      {
-        columnName: 'My Village',
-        columnTownCenter: 1,
-        columnBarracks: 1,
-        columnFarm: 1,
-      },
-    );
-
     // CREATE TABLES
+    await Player.createTable(db);
     await Village.createTable(db);
     await Tile.createTable(db);
     await Building.createTable(db);
     await Unit.createTable(db);
     await MiscObject.createTable(db);
+    await Attack.createTable(db);
+
+    // INSERT INITIAL PLAYER
+    await Player.insertPlayer(db, Player(id: 1, level: 1, score: 0, coins: 0));
+
+    // INSERT FIRST VILLAGES
+    await Village.insertVillage(db, Village(id: 1, name: 'Your village', owned: 1, row: 15, column: 15));
+    await Village.insertVillage(db, Village(id: 2, name: 'Enemy village', owned: 0, row: 11, column: 14));
+    await Village.insertVillage(db, Village(id: 3, name: 'Your village 2', owned: 1, row: 17, column: 17));
 
     // CREATE INITIAL VILLAGE WITH ALL OF ITS INITIAL TILES, UNITS, AND BUILDINGS AND OBJECTS
-    await Village.createInitialVillage(100, 100, true);
+    await Village.createInitialVillage(db, 1);
+    await Village.createInitialVillage(db, 3);
+
+    // FOR TESTING PURPOSE: add some units to own and enemy village
+    await Unit(villageId: 2, name: "spearman", image: "assets/spearman.png", level: 1, offence: 10, defence: 10, amount: 5, cost: 50, speed: 50).insertToDb();
+    await Unit(villageId: 2, name: "wizard", image: "assets/wizard.png", level: 1, offence: 20, defence: 5, amount: 3, cost: 80, speed: 80).insertToDb();
+
+    await Unit(villageId: 1, name: "spearman", image: "assets/spearman.png", level: 1, offence: 10, defence: 10, amount: 8, cost: 50, speed: 50).insertToDb();
+    await Unit(villageId: 1, name: "wizard", image: "assets/wizard.png", level: 1, offence: 20, defence: 5, amount: 5, cost: 80, speed: 80).insertToDb();
+
 
   }
 
 
-  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
 
-    print('Database version changed - Running _onUpgrade()...');
-    if (oldVersion < 9) {
-      await Village.createInitialVillage(100, 100, true);
+  Future<void> clearDatabase() async {
+    final db = await database;
+    print("Dropping all tables");
+    // Get the list of tables
+    List<Map> tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'");
+    for (Map table in tables) {
+      // Don't drop the system table
+      if (table['name'] != 'android_metadata' && table['name'] != 'sqlite_sequence') {
+        await db.execute('DROP TABLE ${table['name']}');
+      }
     }
+    print("All tables dropped");
   }
 
-  Future<void> placeElement(Database db, String content, String image, int row, int col, int overwritable) async {
-    int tileId = row * 9 + col + 1;
 
-    var tile = {
-      columnTileContent: content,
-      columnTileImage: image,
-      columnOverwritable: overwritable
-    };
 
-    await db.update(
-        tilesTable,
-        tile,
-        where: '$columnTileID = ?',
-        whereArgs: [tileId]
-    );
-  }
+
+// Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+  //
+  //   print('Database version changed - Running _onUpgrade()...');
+  //   if (oldVersion < 9) {
+  //     await Village.createInitialVillage(100, 100, true);
+  //   }
+  // }
+
+  // Future<void> placeElement(Database db, String content, String image, int row, int col, int overwritable) async {
+  //   int tileId = row * 9 + col + 1;
+  //
+  //   var tile = {
+  //     columnTileContent: content,
+  //     columnTileImage: image,
+  //     columnOverwritable: overwritable
+  //   };
+  //
+  //   await db.update(
+  //       tilesTable,
+  //       tile,
+  //       where: '$columnTileID = ?',
+  //       whereArgs: [tileId]
+  //   );
+  // }
 
 
 }

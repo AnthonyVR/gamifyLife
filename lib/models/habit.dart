@@ -49,7 +49,7 @@ class Habit {
 
   // Convert a Map into a Habit object
   Habit.fromMap(Map<String, dynamic> map)
-      : id = map['_id'] as int? ?? 0,
+      : id = map['id'] as int? ?? 0,
         title = map['title'],
         reward = map['reward'],
         monday = map['monday'],

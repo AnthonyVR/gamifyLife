@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:habit/habit_list.dart';
 import 'package:habit/habit_details.dart';
+import 'package:habit/models/attack.dart';
 import 'package:habit/village_view.dart';
 import 'models/habit.dart';
 import '/services/database_helper.dart';
@@ -14,6 +15,9 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'map_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'models/unit.dart';
+import 'models/village.dart';
+
 /* DB INSPECTEN:
 View -> Tool Windows -> App Inspection -> Database inspector!!!
  */
@@ -23,27 +27,28 @@ void main() {
   sqfliteFfiInit();
   runApp(HabitTrackerApp());
 }
-// void checkAndUpdateDayTable() async {
-//
-//   final dbHelper = DatabaseHelper.instance;
-//
-//   final currentDate = DateTime.now().subtract(const Duration(hours: 8));
-//   print(currentDate);
-//   var formattedDate = DateFormat('yyyy-MM-dd').format(currentDate);
-//   final weekday = DateFormat('EEEE').format(currentDate);
-//   // Try to retrieve a row from the Day table with the current date
-//   var row = await dbHelper.dayDao.queryDay(formattedDate);
-//   // If the row does not exist, insert it
-//   if (row.isEmpty) {
-//     await dbHelper.dayDao.insertDay({'date': formattedDate, 'weekday': weekday});
-//   }
-// }
+void checkAndUpdateDayTable() async {
+
+  final dbHelper = DatabaseHelper.instance;
+
+  final currentDate = DateTime.now().subtract(const Duration(hours: 8));
+  print(currentDate);
+  var formattedDate = DateFormat('yyyy-MM-dd').format(currentDate);
+  final weekday = DateFormat('EEEE').format(currentDate);
+  // Try to retrieve a row from the Day table with the current date
+  var row = await dbHelper.dayDao.queryDay(formattedDate);
+  // If the row does not exist, insert it
+  if (row.isEmpty) {
+    await dbHelper.dayDao.insertDay({'date': formattedDate, 'weekday': weekday});
+  }
+}
 
 class HabitTrackerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    // checkAndUpdateDayTable();
+    checkAndUpdateDayTable();
+
     return MaterialApp(
       title: 'Gamify Life',
       theme: ThemeData(
@@ -106,7 +111,9 @@ class _HomePageState extends State<HomePage> {
     printDbPath();
     super.initState();
 
-    playerModel.loadPlayer();
+    //playerModel.loadPlayer();
+
+    //Attack.createTable();
 
     currentDate = DateTime.now().subtract(const Duration(hours: 8));
     readableDate = DateFormat('EE, d MMMM y').format(currentDate);
@@ -164,11 +171,12 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
 
     return Scaffold(
-      backgroundColor: Color(0xFFb87a3d),
+      // choose here full color package of main screen
+      backgroundColor: Colors.black, //Color(0xFFb87a3d),
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(50),
         child: AppBar(
-          backgroundColor: GlobalVariables.appMode == 'test' ? Colors.red : Colors.green,
+          backgroundColor: GlobalVariables.appMode == 'test' ? Colors.red : Colors.white24,
           title: Row(
             children: [
               Expanded(
@@ -245,9 +253,35 @@ class _HomePageState extends State<HomePage> {
               },
             ),
             ListTile(
+              title: Text('Remove ALL database tables'),
+              onTap: () {
+                if(GlobalVariables.appMode == 'test' || 1 == 1){
+                  dbHelper.clearDatabase();
+                  setState(() {
+                  });
+                }
+                else {
+                  print("cannot remove production data");
+                }
+              },
+            ),
+            ListTile(
+              title: Text('Rebuild ALL initial database contents'),
+              onTap: () {
+                if(GlobalVariables.appMode == 'test' || 1 == 1){
+                  dbHelper.createInitialDatabase();
+                  setState(() {
+                  });
+                }
+                else {
+                  print("cannot remove production data");
+                }
+              },
+            ),
+            ListTile(
               title: Text('Delete habit history'),
               onTap: () {
-                if(GlobalVariables.appMode == 'test'){
+                if(GlobalVariables.appMode == 'test' || 1 == 1){
                   dbHelper.habitHistoryDao.removeAllHabitHistory();
                 }
                 else {
@@ -258,7 +292,7 @@ class _HomePageState extends State<HomePage> {
             ListTile(
               title: Text('Delete all habits'),
               onTap: () {
-                if(GlobalVariables.appMode == 'test'){
+                if(GlobalVariables.appMode == 'test' || 1 == 1){
                   dbHelper.habitDao.removeAllHabits();
                   setState(() {
 
@@ -272,7 +306,7 @@ class _HomePageState extends State<HomePage> {
             ListTile(
               title: Text('Reset player data'),
               onTap: () {
-                if(GlobalVariables.appMode == 'test'){
+                if(GlobalVariables.appMode == 'test' || 1 == 1){
                   playerModel.resetData();
                   setState(() {
                   });
@@ -292,6 +326,7 @@ class _HomePageState extends State<HomePage> {
                   });
                 }else if(GlobalVariables.appMode == 'prod'){
                   GlobalVariables.appMode = 'test';
+                  print('debuggin test 1');
                   dbHelper.initDatabase();
                   setState(() {
                   });
@@ -360,7 +395,7 @@ class _HomePageState extends State<HomePage> {
                                     setState(() {
                                       playerModel.removeCoins(snapshot.data![index]['reward']);
                                       playerModel.removeScore(snapshot.data![index]['reward']);
-                                      dbHelper.habitHistoryDao.undo(snapshot.data![index]['_id'], date);
+                                      dbHelper.habitHistoryDao.undo(snapshot.data![index]['id'], date);
                                     });
                                   },
                                 ),
@@ -403,7 +438,7 @@ class _HomePageState extends State<HomePage> {
                           onTap: isCompleted ? null : () async {
                             // insert the habit completion into the Habit_History table
                             await DatabaseHelper.instance.habitHistoryDao.insertHabitCompletion({
-                            DatabaseHelper.columnHabitID: snapshot.data![index]['_id'],
+                            DatabaseHelper.columnHabitID: snapshot.data![index]['id'],
                             DatabaseHelper.columnDate: date,
                             DatabaseHelper.columnCount: 1,
                             });
@@ -419,7 +454,7 @@ class _HomePageState extends State<HomePage> {
                           onLongPress: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => HabitDetails(id: snapshot.data![index]['_id'])),
+                              MaterialPageRoute(builder: (context) => HabitDetails(id: snapshot.data![index]['id'])),
                             );
                           }
                       );
@@ -457,7 +492,7 @@ class _HomePageState extends State<HomePage> {
         child: Icon(Icons.add),
       ),
       bottomNavigationBar: BottomAppBar(
-        color: Colors.white,
+        color: Colors.white24,
         child: Padding(
           padding: EdgeInsets.all(10.0),
           child: Row(
@@ -470,7 +505,7 @@ class _HomePageState extends State<HomePage> {
                     SvgPicture.asset('assets/coins.svg',
                       height: 40,
                       width: 40,),
-                    Text(' ${playerModel.player.coins}', style: const TextStyle(fontSize: 25)),
+                    Text(' ${playerModel.player.coins}', style: const TextStyle(fontSize: 30, color: Color(0xFFf5cd2c), fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -483,13 +518,13 @@ class _HomePageState extends State<HomePage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => VillageView(),
+                            builder: (context) => VillageView(villageId: 1),
                             fullscreenDialog: true, // make the page full screen
                           ),
                         );
                       },
                       child: Image.asset(
-                        'assets/village.png',
+                        'assets/village_walled.png',
                         height: 60,
                         width: 60,
                       ),

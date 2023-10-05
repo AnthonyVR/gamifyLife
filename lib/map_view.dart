@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:habit/barracks_view.dart';
 import 'package:habit/farm_view.dart';
+import 'package:habit/models/attack.dart';
 import 'package:habit/villageAppBar.dart';
+import 'package:habit/village_view.dart';
 import '../models/tile.dart';
 import '../services/database_helper.dart';
+import 'models/unit.dart';
 import 'models/village.dart';
 
 class MapView extends StatefulWidget {
@@ -24,6 +27,8 @@ class _MapViewState extends State<MapView> {
 
   int currentRow = 0;
   int currentColumn = 0;
+
+  int selectedVillageId = 1;
 
   Offset? _tapPosition;
 
@@ -159,14 +164,29 @@ class _MapViewState extends State<MapView> {
 
               String? imagePath;
               if (tileMap.containsKey(row) && tileMap[row]!.containsKey(column)) {
-                imagePath = 'assets/village_walled.png';
+
+                if(tileMap[row]![column]!['owned'] == 1){
+                  if(tileMap[row]![column]!['id'] == selectedVillageId){
+                    imagePath = 'assets/village_walled_selected.png';
+                  } else {
+                    imagePath = 'assets/village_walled.png';
+                  }
+                } else {
+                  imagePath = 'assets/village_walled_enemy.png';
+                }
               }
 
               return GestureDetector(
                 onTapDown: (details) => _tapPosition = details.globalPosition,
                 onTap: () {
                   if (_tapPosition != null && imagePath != null) {
-                    _showTilePopup(context, _tapPosition!, tileMap[row]![column]!);
+
+                    if(tileMap[row]![column]!['owned'] == 1){
+                      print("eeeee");
+                      _showOwnedVillagePopup(context, _tapPosition!, tileMap[row]![column]!);
+                    } else {
+                      _showEnemyVillagePopup(context, _tapPosition!, tileMap[row]![column]!);
+                    }
                   }
                 },
                 child: imagePath != null ? Image.asset(imagePath) : Text(""),
@@ -178,8 +198,14 @@ class _MapViewState extends State<MapView> {
     );
   }
 
-  void _showTilePopup(BuildContext context, Offset offset, Map<String, dynamic> tileData) {
+  Future<void> _showOwnedVillagePopup(BuildContext context, Offset offset, Map<String, dynamic> tileData) async {
     final RenderBox overlay = Overlay.of(context)?.context.findRenderObject() as RenderBox;
+
+    print("tiledata");
+    print(tileData['name']);
+
+    Village? village = await  Village.getVillageById(tileData['id']);
+    List<Unit>? units = await village.getUnits();
 
     showMenu(
       context: context,
@@ -189,20 +215,209 @@ class _MapViewState extends State<MapView> {
       ),
       items: [
         PopupMenuItem(
-          child: Text('Tile Information'),
           value: 'info',
+          child: Text("${tileData['name']} (${tileData['columnNum']}, ${tileData['rowNum']})"),
         ),
         PopupMenuItem(
-          child: Text('Village: ${tileData['villageName']}'), // adjust as per your tile data
-          value: 'village',
+          value: 'option1',
+          child: ElevatedButton(
+            onPressed: () {
+              setState(() {
+                selectedVillageId = tileData['id'];
+              });
+              },
+            child: Text("Select"),
+          ),
         ),
-        // ... Add more items if needed
+        PopupMenuItem(
+          value: 'option1',
+          child: ElevatedButton(
+            onPressed: () {
+              setState(() {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => VillageView(villageId: tileData['id']),
+                    fullscreenDialog: true, // make the page full screen
+                  ),
+                );
+              });
+            },
+            child: Text("Enter village"),
+          ),
+        ),
+        ...units.map((unit) {
+          return PopupMenuItem(
+            value: unit.id,
+            child: Row(
+              children: <Widget>[
+                Image.asset(unit.image, width: 24, height: 24), // adjust width and height as needed
+                SizedBox(width: 2), // Adds some spacing between image and text
+                Text("${unit.name}: ${unit.amount}"),
+              ],
+            ),
+          );
+        }).toList(),
       ],
       elevation: 8.0,
     );
   }
 
+  Future<void> _showEnemyVillagePopup(BuildContext context, Offset offset, Map<String, dynamic> tileData) async {
+    final RenderBox overlay = Overlay.of(context)?.context.findRenderObject() as RenderBox;
+
+    print("tiledata");
+    print(tileData['name']);
+
+    showMenu(
+      context: context,
+      position: RelativeRect.fromRect(
+        offset & Size(40, 40), // assuming each tile is 40x40
+        Offset.zero & overlay.size,
+      ),
+      items: [
+        PopupMenuItem(
+          value: 'info',
+          child: Text("${tileData['name']} (${tileData['columnNum']}, ${tileData['rowNum']})"),
+        ),
+        PopupMenuItem(
+          value: 'option1',
+          child: ElevatedButton(
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) {
+                  return FutureBuilder<List<Unit>?>(
+                    future: _fetchUnits(selectedVillageId),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const CircularProgressIndicator();
+                      } else if (snapshot.hasError) {
+                        return Text('Error: ${snapshot.error}');
+                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return const Text('No units available');
+                      } else {
+                        return UnitsPopup(
+                          units: snapshot.data!,
+                          selectedVillageId: selectedVillageId,
+                          destinationVillageId: tileData['id'],
+                        );
+                      }
+                    },
+                  );
+                },
+              );
+            },
+
+            child: const Text("attack"),
+          ),
+        ),
+      ],
+      elevation: 8.0,
+    );
+  }
+
+  Future<List<Unit>?> _fetchUnits(int villageId) async {
+    Village? village = await Village.getVillageById(villageId);
+    return village?.getUnits();
+  }
+
 }
+
+
+
+
+class UnitsPopup extends StatefulWidget {
+  final List<Unit> units;
+  final int selectedVillageId;
+  final int destinationVillageId;
+
+  UnitsPopup({
+    required this.units,
+    required this.selectedVillageId,
+    required this.destinationVillageId,
+  });
+
+  @override
+  _UnitsPopupState createState() => _UnitsPopupState();
+}
+
+class _UnitsPopupState extends State<UnitsPopup> {
+  late Map<Unit, int> selectedUnitsMap;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedUnitsMap = {for (var unit in widget.units) unit: unit.amount};
+  }
+
+
+  void _onAttackPressed() {
+    List<Map<String, dynamic>> attackDetails = selectedUnitsMap.entries
+        .map((entry) => {
+      'unit': entry.key,
+      'amount': entry.value,
+    })
+        .where((detail) => detail['amount'] as int > 0)
+        .toList();
+
+    // Call the attackVillage function with the list of selected units and their amounts
+    Attack.attackVillage(widget.selectedVillageId, widget.destinationVillageId, attackDetails);
+    //attackVillage(attackDetails);
+
+    print('Attack details: $attackDetails');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ...widget.units.map((unit) {
+            return ListTile(
+              title: Text(unit.name),
+              subtitle: Row(
+                children: [
+                  Text('Amount: ${unit.amount}'),
+                  SizedBox(width: 15),
+                  DropdownButton<int>(
+                    value: selectedUnitsMap[unit],
+                    items: List.generate(unit.amount! + 1, (index) {
+                      return DropdownMenuItem<int>(
+                        value: index,
+                        child: Text('$index'),
+                      );
+                    }),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedUnitsMap[unit] = value!;
+                      });
+                    },
+                  )
+                ],
+              ),
+              onTap: () {
+                Navigator.pop(context, {'unit': unit, 'amount': selectedUnitsMap[unit]});
+              },
+            );
+          }).toList(),
+          ElevatedButton(
+            onPressed: _onAttackPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('ATTACK', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+
+
 
 class CoordinatesDisplay extends StatefulWidget {
   final int row;
@@ -213,7 +428,6 @@ class CoordinatesDisplay extends StatefulWidget {
   @override
   _CoordinatesDisplayState createState() => _CoordinatesDisplayState();
 }
-
 class _CoordinatesDisplayState extends State<CoordinatesDisplay> {
   int _row;
   int _column;

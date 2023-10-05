@@ -11,14 +11,33 @@ class DayDao {
   // Query the table for all rows where the date equals the given date.
   Future<List<Map<String, dynamic>>> queryDay(String date) async {
     Database db = await dbHelper.database;
-    return await db.query(DatabaseHelper.daysTable, where: 'date = ?', whereArgs: [date]);
+
+    // Check if the table exists
+    List<Map> tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name=?", [DatabaseHelper.daysTable]);
+    if (tables != null && tables.length > 0) {
+      return await db.query(DatabaseHelper.daysTable, where: 'date = ?', whereArgs: [date]);
+    }
+
+    // Return an empty list if the table doesn't exist
+    return [];
   }
 
+
   // Insert a row in the table.
-  Future<int> insertDay(Map<String, dynamic> row) async {
+  Future<int?> insertDay(Map<String, dynamic> row) async {
     Database db = await dbHelper.database;
-    return await db.insert(DatabaseHelper.daysTable, row);
+
+    // Check if the daysTable exists
+    List<Map> tableExists = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name=?", [DatabaseHelper.daysTable]);
+
+    if (tableExists.isNotEmpty) {
+      return await db.insert(DatabaseHelper.daysTable, row);
+    }
+
+    // Return null or some error indicator if the table doesn't exist
+    return null;
   }
+
 
   // Get previous date from today
   Future<String> getPreviousDate(String currentDate) async {

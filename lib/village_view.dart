@@ -7,7 +7,10 @@ import '../services/database_helper.dart';
 import 'models/village.dart';
 
 class VillageView extends StatefulWidget {
-  const VillageView({Key? key}) : super(key: key);
+  final int villageId;
+
+  const VillageView({Key? key, required this.villageId}) : super(key: key);
+
 
   @override
   _VillageViewState createState() => _VillageViewState();
@@ -15,7 +18,7 @@ class VillageView extends StatefulWidget {
 
 class _VillageViewState extends State<VillageView> {
 
-  int villageId = 1;
+  late int villageId;
 
   final String grassImage = 'assets/village_package/tiles/medievalTile_57.png';
   final String rock = 'assets/village_package/environment/medievalEnvironment_07.png';
@@ -34,10 +37,10 @@ class _VillageViewState extends State<VillageView> {
   @override
   void initState() {
     super.initState();
-    _villageFuture = Village.getVillageById(1);
+    villageId = widget.villageId;
 
-    //this code should be changed later to implement multiple village functionality!
-    villageId = 1;
+    _villageFuture = Village.getVillageById(villageId);
+
   }
 
   @override
@@ -139,7 +142,7 @@ class _VillageViewState extends State<VillageView> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => FarmView(),
+                          builder: (context) => FarmView(villageId: villageId),
                           fullscreenDialog: true, // make the page full screen
                         ),
                       );
@@ -175,10 +178,9 @@ class _VillageViewState extends State<VillageView> {
                     'column': column,
                     ...tileMap[row]![column]!,
                   },
-                  child: Image.asset(tileMap[row]![column]!['imagePath'], fit: BoxFit.cover),
                   feedback: Material(
-                    child: Image.asset(tileMap[row]![column]!['imagePath'], fit: BoxFit.cover),
                     elevation: 4.0,
+                    child: Image.asset(tileMap[row]![column]!['imagePath'], fit: BoxFit.contain),
                   ),
                   onDragStarted: () {
                     _initialRow = row;
@@ -186,6 +188,7 @@ class _VillageViewState extends State<VillageView> {
                     print("setting initiali row");
                     print(_initialRow);
                   },
+                  child: Image.asset(tileMap[row]![column]!['imagePath'], fit: BoxFit.contain),
                 )
                     : Container(), // Display an empty container if there's no tile.
               );
@@ -206,7 +209,7 @@ class _VillageViewState extends State<VillageView> {
                   print("removing unit");
                   await removeUnitFromVillage(_initialRow!, _initialColumn!);
                 } else{
-                  await moveUnit(1, row, column);
+                  await moveUnit(row, column);
 
                 }
                 _initialRow = null;
@@ -228,12 +231,12 @@ class _VillageViewState extends State<VillageView> {
 
   // This function makes you go to the barracks and is necessary for
   // being able to place a unit in the village. It adds a listener for
-  // a unit id, to make it possible to use the place unit button from the barracks.
+  // a unit id, to make it possible to use the 'place unit' button from the barracks.
   Future<void> _navigateToBarracksAndGetUnit() async {
     var result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => BarracksView(villageId: 1),
+        builder: (context) => BarracksView(villageId: villageId),
         fullscreenDialog: true, // make the page full screen
       ),
     );
@@ -262,7 +265,7 @@ class _VillageViewState extends State<VillageView> {
   }
 
 
-  Future<void> moveUnit(int id, int destinationRow, int destinationColumn) async {
+  Future<void> moveUnit(int destinationRow, int destinationColumn) async {
 
     Tile? selectedUnit = await _village?.getTileByRowAndColumn(_initialRow!, _initialColumn!);
 
@@ -273,6 +276,6 @@ class _VillageViewState extends State<VillageView> {
   }
 
   Future<Village?> _getVillage() async {
-    return await Village.getVillageById(1);
+    return await Village.getVillageById(villageId);
   }
 }

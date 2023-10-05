@@ -11,10 +11,11 @@ class Unit {
   int level;
   final int offence;
   final int defence;
+  final int speed;
   int amount;
 
   Unit({
-    required this.id,
+    this.id,
     required this.villageId,
     required this.name,
     required this.image,
@@ -22,6 +23,7 @@ class Unit {
     required this.level,
     required this.offence,
     required this.defence,
+    required this.speed,
     required this.amount
   });
 
@@ -37,6 +39,7 @@ class Unit {
       'level': level,
       'offence': offence,
       'defence': defence,
+      'speed': speed,
       'amount': amount,
     };
   }
@@ -56,6 +59,7 @@ class Unit {
       level: map['level'],
       offence: map['offence'],
       defence: map['defence'],
+      speed: map['speed'],
       amount: map['amount'],
     );
   }
@@ -72,6 +76,7 @@ class Unit {
           level INTEGER NOT NULL,
           offence INTEGER NOT NULL,
           defence INTEGER NOT NULL,
+          speed INTEGER NOT NULL,
           amount INTEGER NOT NULL,
           FOREIGN KEY (village_id) REFERENCES villages(id)
       )
@@ -105,8 +110,23 @@ class Unit {
   Future<int> addToAmount() async {
     final db = await DatabaseHelper.instance.database;
 
-    // Increase its level by 1
+    // Increase its amount by 1
     amount += 1;
+
+    // Update the unit in the database
+    return await db.update(
+      'units',
+      toMap(),
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> removeFromAmount() async {
+    final db = await DatabaseHelper.instance.database;
+
+    // Increase its amount by 1
+    amount -= 1;
 
     // Update the unit in the database
     return await db.update(
