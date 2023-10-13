@@ -30,9 +30,9 @@ class HabitHistoryDao {
       var res = await db.rawQuery('''
       SELECT ${DatabaseHelper.habitsTable}.*, COUNT(${DatabaseHelper.habitHistoryTable}.${DatabaseHelper.columnHabitID}) as completedCount,
       SUM(CASE 
-          WHEN ${DatabaseHelper.habitHistoryTable}.${DatabaseHelper.columnDate} IS NOT NULL THEN ${DatabaseHelper.habitsTable}.${DatabaseHelper.columnReward}
+          WHEN ${DatabaseHelper.habitHistoryTable}.${DatabaseHelper.columnDate} IS NOT NULL THEN ${DatabaseHelper.habitsTable}.${DatabaseHelper.columnDifficulty}
           ELSE 0 
-          END) as totalReward
+          END) as totalDifficulty
       FROM ${DatabaseHelper.habitsTable} 
       LEFT JOIN ${DatabaseHelper.habitHistoryTable} 
         ON ${DatabaseHelper.habitsTable}.${DatabaseHelper.columnId} = ${DatabaseHelper.habitHistoryTable}.${DatabaseHelper.columnHabitID} 
@@ -96,7 +96,7 @@ class HabitHistoryDao {
     return res;
   }
 
-  Future<int> getTotalRewardsForToday(String date, String weekday) async {
+  Future<int> getTotalDifficultysForToday(String date, String weekday) async {
     Database db = await dbHelper.database;
 
     var res = getHabitsForToday(date, weekday);
@@ -104,7 +104,7 @@ class HabitHistoryDao {
     double totalSum = 0;
     List<Map<String, dynamic>> resList = await res;
     for (var row in resList) {
-      totalSum += row['totalReward'];
+      totalSum += row['totalDifficulty'];
     }
 
     return totalSum.toInt();

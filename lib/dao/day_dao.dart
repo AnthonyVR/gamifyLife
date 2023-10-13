@@ -49,6 +49,7 @@ class DayDao {
     if (res.isNotEmpty) {
       return res.first[DatabaseHelper.columnDate] as String;
     } else {
+      return currentDate;
       throw Exception('No previous date found in the database.');
     }
   }
@@ -63,6 +64,7 @@ class DayDao {
     if (res.isNotEmpty) {
       return res.first[DatabaseHelper.columnDate] as String;
     } else {
+      return currentDate;
       throw Exception('No next date found in the database.');
     }
   }

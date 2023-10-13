@@ -7,19 +7,21 @@ import 'dart:math';
 import 'misc_object.dart';
 
 class Village {
-  int id;
+  final int? id;
   String name;
   int owned;
   final int row;
   final int column;
+  int coins;
   List<Tile> tiles = [];  // A list to store the tiles associated with this village
 
   Village({
-    required this.id,
+    this.id,
     required this.name,
     required this.owned,
     required this.row,
     required this.column,
+    required this.coins,
     this.tiles = const [],  // Optionally accept a list of tiles in the constructor
   });
 
@@ -67,11 +69,11 @@ class Village {
           name TEXT,
           owned INTEGER,
           row INTEGER,
-          column INTEGER
+          column INTEGER,
+          coins INTEGER
       )
     ''');
   }
-
 
 
   // Extract a Village object from a Map object
@@ -81,7 +83,8 @@ class Village {
       name: map['name'],
       owned: map['owned'],
       row: map['row'],
-      column: map['column']
+      column: map['column'],
+      coins: map['coins']
     );
   }
 
@@ -92,7 +95,8 @@ class Village {
       'name': name,
       'owned': owned,
       'row': row,
-      'column': column
+      'column': column,
+      'coins': coins
     };
   }
 
@@ -416,52 +420,6 @@ class Village {
     addTile(tile);
   }
 
-  // Future<void> removeTileByRowAndColumn(int row, int column, [String? type]) async {
-  //   final db = await DatabaseHelper.instance.database;
-  //
-  //   String whereClause;
-  //   List<dynamic> whereArgs;
-  //
-  //   if (type == null) {
-  //     whereClause = 'row_num = ? AND column_num = ?';
-  //     whereArgs = [row, column];
-  //   } else {
-  //     whereClause = 'row_num = ? AND column_num = ? AND content_type = ?';
-  //     whereArgs = [row, column, type];
-  //   }
-  //
-  //   await db.delete(
-  //     'tiles',
-  //     where: whereClause,
-  //     whereArgs: whereArgs,
-  //   );
-  //
-  //   print("typeee");
-  //   print(type);
-  //   // Retrieve the content_id from the tiles table (this is used to add the unit to the amount of the units table again)
-  //   int? contentId;
-  //   if (type == 'unit') {
-  //     List<Map<String, dynamic>> queryResult = await db.query(
-  //       'tiles',
-  //       columns: ['content_id'],
-  //       where: whereClause,
-  //       whereArgs: whereArgs,
-  //     );
-  //
-  //     if (queryResult.isNotEmpty && queryResult.first.containsKey('content_id')) {
-  //       contentId = queryResult.first['content_id'] as int;
-  //     }
-  //   }
-  //
-  //   // add villager to the available amount of the units table again
-  //   if (type == 'unit' && contentId != null) {
-  //     addUnit(contentId);
-  //   }
-  // }
-
-
-  // MAP //
-
   static Future<List<Map<String, dynamic>>> getVillages() async {
     final db = await DatabaseHelper.instance.database;
 
@@ -471,7 +429,8 @@ class Village {
         name as name,
         row AS rowNum,
         column AS columnNum,
-        owned AS owned
+        owned AS owned,
+        coins AS coins
       FROM villages;
       ''');
 
@@ -480,6 +439,27 @@ class Village {
 
     return maps;
   }
+
+  static Future<List<Village>> getEnemyVillages() async {
+    final db = await DatabaseHelper.instance.database;
+
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+    SELECT 
+      *
+    FROM villages
+    WHERE owned = 0;
+    ''');
+
+    print("test");
+    print(maps);
+    List<Village> villages = maps.map((map) => Village.fromMap(map)).toList();
+
+    print('printing villages');
+    print(villages);
+
+    return villages;
+  }
+
 
   static Future<Map<int, Map<int, Map<String, dynamic>>>> fetchVillages() async {
     List<Map<String, dynamic>> tilesList = await getVillages();
@@ -494,6 +474,7 @@ class Village {
       int rowNum = tile['rowNum'];
       int columnNum = tile['columnNum'];
       int owned = tile['owned'];
+      int coins = tile['coins'];
 
       if (!resultMap.containsKey(rowNum)) {
         resultMap[rowNum] = {};
@@ -524,6 +505,236 @@ class Village {
     // Assuming Tile has a factory method fromMap to create an instance from a Map
     return Village.fromMap(results.first);
   }
+
+  // HABIT COMPLETION (main.dart)
+
+  // Get the sum of all the townhalls to get the total reward factor
+  static Future<double> getTotalRewardFactor() async {
+    final db = await DatabaseHelper.instance.database;
+
+    final result = await db.rawQuery('''
+    SELECT SUM(b.level) as totalSum
+    FROM buildings b
+    INNER JOIN villages v ON b.village_id = v.id
+    WHERE b.name = 'town_hall' AND v.owned = 1;
+  ''');
+
+    print(result);
+
+    if(result[0]['totalSum'] == null){
+      return 1.00;
+    }
+
+    int townHallSum = result[0]['totalSum'] as int;
+    double totalRewardFactor = 1 + townHallSum * 0.2;
+    return totalRewardFactor;
+
+  }
+
+  static Future<void> divideCoins(int difficulty) async {
+    final db = await DatabaseHelper.instance.database;
+
+    // Fetch town hall levels of all owned villages.
+    final List<Map<String, dynamic>> townHallLevels = await db.rawQuery('''
+    SELECT v.id, b.level as town_hall_level
+    FROM buildings b
+    INNER JOIN villages v ON b.village_id = v.id
+    WHERE b.name = 'town_hall' AND v.owned = 1;
+  ''');
+
+    int totalTownHallSum = townHallLevels.fold(0, (sum, village) => sum + village['town_hall_level'] as int);
+    double totalRewardFactor = 1 + totalTownHallSum * 0.2;
+    double totalCoinsEarned = totalRewardFactor * difficulty;
+
+
+    print(totalRewardFactor);
+    print(totalTownHallSum);
+    print(totalCoinsEarned);
+
+    for (Map<String, dynamic> village in townHallLevels) {
+      int villageId = village['id'];
+      int townHallLevel = village['town_hall_level'];
+
+      // Calculate coins for this village based on its proportion of the total town hall sum.
+      int coinsForThisVillage = ((townHallLevel / totalTownHallSum) * totalCoinsEarned).round();
+
+      print("----");
+      print(villageId);
+      print(coinsForThisVillage);
+      // Update the coins of this village in the database.
+      await db.rawUpdate(
+          'UPDATE villages SET coins = coins + ? WHERE id = ?',
+          [coinsForThisVillage, villageId]
+      );
+    }
+  }
+
+
+  // EVENTS
+  static Future<Map> spawnVillage() async {
+    final db = await DatabaseHelper.instance.database;
+
+    //// get total number of villages to properly name the new one
+    final result = await db.rawQuery('''
+    SELECT COUNT(*) as count
+    FROM villages;
+    ''');
+
+    int numberOfVillages = 0;
+    // The result list should contain a single map with a 'count' key
+    if (result.isNotEmpty) {
+      numberOfVillages = result.first['count'] as int;
+    }
+
+    //// get list of all combinations of row and column to make sure not a duplicate is entered in the database
+    final List<Map<String, dynamic>> existingCombinations = await db.query(
+      'villages',
+      columns: ['row', 'column'],
+    );
+
+    // Convert the list of maps into a set for efficient searching
+    final Set<Map<String, int>> existingSet = existingCombinations.map((map) {
+      return {'row': map['row'] as int, 'column': map['column'] as int};
+    }).toSet();
+
+    int newRow, newColumn;
+    final Random random = Random();
+
+    do {
+      // Generate a new 'row' and 'column', each in the range 0 to 30
+      newRow = random.nextInt(31); // because nextInt is exclusive of its upper bound
+      newColumn = random.nextInt(31);
+
+      // Continue looping if this combination already exists in the database
+    } while (existingSet.contains({'row': newRow, 'column': newColumn}));
+    ////
+
+    // insert to db
+    await Village.insertVillage(db, Village(name: 'Enemy Village $numberOfVillages', owned: 0, row: newRow, column: newColumn, coins: 0));
+
+    // Get the ID of the village that has just been inserted in order to call createInitialVillage() with the right ID
+    final idResult = await db.rawQuery('SELECT LAST_INSERT_ROWID() as last_id;');
+
+    int lastVillageId = idResult[0]['last_id'] as int;
+
+    print('Spawned village with name Enemy Village $numberOfVillages has ID: $lastVillageId');
+
+
+    await Village.createInitialVillage(db, lastVillageId);
+
+    return {'row': newRow, 'column': newColumn};
+
+  }
+
+  Future<String> updateEnemyBuilding() async {
+
+    var random = Random();
+    var randomNumber = random.nextInt(2); // Generates a random integer from 1 to 3.
+    print(randomNumber);
+    List buildingTypes = ['town_hall', 'farm'];
+
+    await upgradeBuildingLevel(buildingTypes[randomNumber]);
+
+    return buildingTypes[randomNumber];
+  }
+
+  Future<Map> addEnemyUnit() async{
+
+    List<Unit> unitList = await getUnits();
+
+    // The odds of a unit to be added is inversely proportional to their cost.
+    // So units with a high cost have a lower chance of being added.
+
+    int totalCost = unitList.fold(0, (int currentTotal, Unit unit) {
+      return currentTotal + unit.cost; // assuming cost is an integer field in the Unit class
+    });
+
+    print('total cost of all units for this village');
+    print(totalCost);
+
+    // Calculate weights for each unit (inversely proportional to cost)
+    List<double> weights = unitList.map((unit) => totalCost / unit.cost).toList();
+
+    // Calculate total weight
+    double totalWeight = weights.reduce((a, b) => a + b);
+
+    //// DIT MAG WEG NA TESTING
+    // Calculate and print the probability for each unit
+    for (var i = 0; i < unitList.length; i++) {
+      double probability = weights[i] / totalWeight;
+      print('The odds of ${unitList[i].name} being leveled up are ${probability * 100}%');
+    }
+    ////
+
+    // Generate a random number
+    var rng = Random();
+    double rand = rng.nextDouble() * totalWeight; // Random value between 0 and totalWeight
+
+    // Determine which unit to level up
+    double cumulative = 0;
+    for (var i = 0; i < unitList.length; i++) {
+      cumulative += weights[i];
+      if (rand <= cumulative) {
+        unitList[i].addToAmount();
+        return {'villageName':name, 'unit': unitList[i].name};
+      }
+    }
+
+    return {};
+
+  }
+
+  Future<Map> trainEnemyUnit() async{
+    List<Unit> unitList = await getUnits();
+
+    // The odds of a unit to be added is inversely proportional to their cost.
+    // So units with a high cost have a lower chance of being added.
+
+    // A unit can only be trained if its level is below the max level of 10
+    unitList.removeWhere((unit) => unit.level >= 10);
+
+    if(unitList.isEmpty){
+      return {'villageName':name, 'unit': 'all_units_max_level'};
+    }
+
+    int totalCost = unitList.fold(0, (int currentTotal, Unit unit) {
+      return currentTotal + unit.cost; // assuming cost is an integer field in the Unit class
+    });
+
+    print('total cost of all units for this village');
+    print(totalCost);
+
+    // Calculate weights for each unit (inversely proportional to cost)
+    List<double> weights = unitList.map((unit) => totalCost / unit.cost).toList();
+
+    // Calculate total weight
+    double totalWeight = weights.reduce((a, b) => a + b);
+
+    //// DIT MAG WEG NA TESTING
+    // Calculate and print the probability for each unit
+    for (var i = 0; i < unitList.length; i++) {
+      double probability = weights[i] / totalWeight;
+      print('The odds of ${unitList[i].name} being leveled up are ${probability * 100}%');
+    }
+    ////
+
+    // Generate a random number
+    var rng = Random();
+    double rand = rng.nextDouble() * totalWeight; // Random value between 0 and totalWeight
+
+    // Determine which unit to level up
+    double cumulative = 0;
+    for (var i = 0; i < unitList.length; i++) {
+      cumulative += weights[i];
+      if (rand <= cumulative) {
+        unitList[i].levelUp();
+        return {'villageName':name, 'unit': unitList[i].name};
+      }
+    }
+
+    return {};
+  }
+
 
 
 }

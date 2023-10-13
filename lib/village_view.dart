@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:habit/barracks_view.dart';
 import 'package:habit/farm_view.dart';
+import 'package:habit/townhall_view.dart';
 import 'package:habit/villageAppBar.dart';
 import '../models/tile.dart';
 import '../services/database_helper.dart';
@@ -146,6 +147,14 @@ class _VillageViewState extends State<VillageView> {
                           fullscreenDialog: true, // make the page full screen
                         ),
                       );
+                    } else if (objectName == 'town_hall') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TownhallView(villageId: villageId),
+                          fullscreenDialog: true, // make the page full screen
+                        ),
+                      );
                     }
                   } else {
 
@@ -180,15 +189,15 @@ class _VillageViewState extends State<VillageView> {
                   },
                   feedback: Material(
                     elevation: 4.0,
-                    child: Image.asset(tileMap[row]![column]!['imagePath'], fit: BoxFit.contain),
+                    child: Image.asset(tileMap[row]![column]!['imagePath'], fit: BoxFit.fill),
                   ),
+                  child: Image.asset(tileMap[row]![column]!['imagePath'], fit: BoxFit.fill),
                   onDragStarted: () {
                     _initialRow = row;
                     _initialColumn = column;
                     print("setting initiali row");
                     print(_initialRow);
                   },
-                  child: Image.asset(tileMap[row]![column]!['imagePath'], fit: BoxFit.contain),
                 )
                     : Container(), // Display an empty container if there's no tile.
               );

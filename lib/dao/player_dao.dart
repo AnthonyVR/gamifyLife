@@ -8,7 +8,6 @@ class PlayerDao {
   final DatabaseHelper dbHelper;
   PlayerDao(this.dbHelper);
 
-  // Method to get coins
   Future<Player> getPlayer() async {
     Database db = await dbHelper.database;
 
@@ -33,7 +32,7 @@ class PlayerDao {
       'id': player.id,
       'level': player.level,
       'score': player.score,
-      'coins': player.coins,
+      'rewardFactor': player.rewardFactor,
     };
 
     return await db.update(

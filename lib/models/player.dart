@@ -5,15 +5,15 @@ class Player {
   int id;
   int level;
   int score;
-  int coins;
+  int rewardFactor;
 
-  Player({required this.id, required this.level, required this.score, required this.coins});
+  Player({required this.id, required this.level, required this.score, required this.rewardFactor});
 
   Player.fromMap(Map<String, dynamic> map)
       : id = map['id'],
         level = map['level'],
         score = map['score'],
-        coins = map['coins'];
+        rewardFactor = map['rewardFactor'];
 
 
   Map<String, dynamic> toMap() {
@@ -21,7 +21,7 @@ class Player {
       'id': id,
       'level': level,
       'score': score,
-      'coins': coins,
+      'rewardFactor': rewardFactor,
     };
   }
 
@@ -32,8 +32,8 @@ class Player {
         id INTEGER PRIMARY KEY,
         level INTEGER NOT NULL,
         score INTEGER NOT NULL,
-        coins INTEGER NOT NULL
-      )
+        rewardFactor INTEGER NOT NULL
+        )
     ''');
   }
 
@@ -47,7 +47,7 @@ class Player {
 class PlayerModel extends ChangeNotifier {
   final dbHelper = DatabaseHelper.instance;
 
-  Player _player = Player(id: 1, level: 1, score: 0, coins: 0);
+  Player _player = Player(id: 1, level: 1, score: 0, rewardFactor: 0);
 
   Player get player => _player;
 
@@ -56,14 +56,14 @@ class PlayerModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addCoins(int coinsToAdd) async {
-    _player.coins += coinsToAdd;
+  Future<void> addRewardFactor(int rewardFactorToAdd) async {
+    _player.rewardFactor += rewardFactorToAdd;
     await dbHelper.playerDao.updatePlayer(_player);
     notifyListeners();
   }
 
-  Future<void> removeCoins(int coinsToRemove) async {
-    _player.coins -= coinsToRemove;
+  Future<void> removeRewardFactor(int rewardFactorToRemove) async {
+    _player.rewardFactor -= rewardFactorToRemove;
     await dbHelper.playerDao.updatePlayer(_player);
     notifyListeners();
   }
@@ -83,7 +83,7 @@ class PlayerModel extends ChangeNotifier {
   Future<void> resetData() async {
     _player.score = 0;
     _player.level = 1;
-    _player.coins = 0;
+    _player.rewardFactor = 1;
 
     await dbHelper.playerDao.updatePlayer(_player);
     notifyListeners();

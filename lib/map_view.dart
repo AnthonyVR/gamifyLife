@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:habit/barracks_view.dart';
 import 'package:habit/farm_view.dart';
 import 'package:habit/models/attack.dart';
@@ -208,6 +209,7 @@ class _MapViewState extends State<MapView> {
     List<Unit>? units = await village.getUnits();
 
     showMenu(
+      color: Colors.white30,
       context: context,
       position: RelativeRect.fromRect(
         offset & Size(40, 40), // assuming each tile is 40x40
@@ -230,7 +232,7 @@ class _MapViewState extends State<MapView> {
           ),
         ),
         PopupMenuItem(
-          value: 'option1',
+          value: 'Enter village',
           child: ElevatedButton(
             onPressed: () {
               setState(() {
@@ -244,6 +246,20 @@ class _MapViewState extends State<MapView> {
               });
             },
             child: Text("Enter village"),
+          ),
+        ),
+        PopupMenuItem(
+          value: 'info',
+          child: Row(
+            children: [
+              SvgPicture.asset(
+                'assets/coins.svg',
+                width: 26,
+                height: 26,
+              ),
+              SizedBox(width: 5,),
+              Text("${tileData['coins']}", style: TextStyle(fontSize: 20))
+            ],
           ),
         ),
         ...units.map((unit) {
@@ -270,6 +286,7 @@ class _MapViewState extends State<MapView> {
     print(tileData['name']);
 
     showMenu(
+      color: Colors.white24,
       context: context,
       position: RelativeRect.fromRect(
         offset & Size(40, 40), // assuming each tile is 40x40
@@ -379,7 +396,7 @@ class _UnitsPopupState extends State<UnitsPopup> {
               title: Text(unit.name),
               subtitle: Row(
                 children: [
-                  Text('Amount: ${unit.amount}'),
+                  Text('Amount:'),
                   SizedBox(width: 15),
                   DropdownButton<int>(
                     value: selectedUnitsMap[unit],

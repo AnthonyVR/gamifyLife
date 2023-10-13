@@ -42,7 +42,6 @@ dependencies:
   fl_chart: ^0.40.1
   shared_preferences: ^2.0.9
   sqflite_common_ffi: any
-
 dev_dependencies:
   flutter_test:
     sdk: flutter

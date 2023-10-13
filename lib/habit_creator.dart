@@ -13,7 +13,7 @@ class HabitCreator extends StatefulWidget {
 class _HabitCreatorState extends State<HabitCreator> {
   final dbHelper = DatabaseHelper.instance;
   String title = '';
-  int reward = 0;
+  int difficulty = 0;
   bool unlimited = false;
 
   Map<String, bool> days = {
@@ -48,9 +48,9 @@ class _HabitCreatorState extends State<HabitCreator> {
             ),
             TextField(
               onChanged: (value) {
-                reward = int.parse(value);
+                difficulty = int.parse(value);
               },
-              decoration: InputDecoration(hintText: "Reward"),
+              decoration: InputDecoration(hintText: "Difficulty"),
               keyboardType: TextInputType.number,
             ),
             ...days.keys.map((day) {
@@ -112,7 +112,7 @@ class _HabitCreatorState extends State<HabitCreator> {
           onPressed: () async {
             Map<String, dynamic> row = {
               DatabaseHelper.columnTitle: title,
-              DatabaseHelper.columnReward: reward,
+              DatabaseHelper.columnDifficulty: difficulty,
               //DatabaseHelper.columnTimesPerDay: timesPerDay, // add this line
               DatabaseHelper.columnMonday: days['Monday']! ? timesPerDay : 0,
               DatabaseHelper.columnTuesday: days['Tuesday']! ? timesPerDay : 0,

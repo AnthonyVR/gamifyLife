@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 
 import 'models/village.dart';
 
@@ -15,6 +16,7 @@ class VillageAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      automaticallyImplyLeading: false, // This will hide the back button
       backgroundColor: const Color(0xFFb87a3d),
       title: FutureBuilder<Village?>(
         future: getVillage(),
@@ -35,6 +37,17 @@ class VillageAppBar extends StatelessWidget implements PreferredSizeWidget {
             return Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Row(
+                  children: [
+                    SvgPicture.asset(
+                      'assets/coins.svg',
+                      width: 25,
+                      height: 25,
+                    ),
+                    SizedBox(width: 5,),
+                    Text("${villageSnapshot.data?.coins}", style: TextStyle(fontSize: 28),),
+                  ],
+                ),
                 Text(displayTitle),
                 FutureBuilder<int?>(
                   future: villageSnapshot.data!.getPopulation(),

@@ -14,7 +14,7 @@ class HabitEditor extends StatefulWidget {
 class _HabitEditorState extends State<HabitEditor> {
   final dbHelper = DatabaseHelper.instance;
   late String title;
-  late int reward;
+  late int difficulty;
   late Map<String, bool> days;
 
   @override
@@ -22,7 +22,7 @@ class _HabitEditorState extends State<HabitEditor> {
     super.initState();
     // Pre-fill the fields with the current data of the habit
     title = widget.habit.title;
-    reward = widget.habit.reward;
+    difficulty = widget.habit.difficulty;
     days = {
       'Monday': widget.habit.monday == 1,
       'Tuesday': widget.habit.tuesday == 1,
@@ -49,11 +49,11 @@ class _HabitEditorState extends State<HabitEditor> {
             decoration: InputDecoration(hintText: "Habit Title"),
           ),
           TextField(
-            controller: TextEditingController(text: reward.toString()),
+            controller: TextEditingController(text: difficulty.toString()),
             onChanged: (value) {
-              reward = int.parse(value);
+              difficulty = int.parse(value);
             },
-            decoration: InputDecoration(hintText: "Reward"),
+            decoration: InputDecoration(hintText: "Difficulty"),
             keyboardType: TextInputType.number,
           ),
           // Add a CheckboxListTile for each day of the week
@@ -83,7 +83,7 @@ class _HabitEditorState extends State<HabitEditor> {
             Map<String, dynamic> row = {
               DatabaseHelper.columnId: widget.habit.id,
               DatabaseHelper.columnTitle: title,
-              DatabaseHelper.columnReward: reward,
+              DatabaseHelper.columnDifficulty: difficulty,
               DatabaseHelper.columnMonday: days['Monday']! ? 1 : 0,
               DatabaseHelper.columnTuesday: days['Tuesday']! ? 1 : 0,
               DatabaseHelper.columnWednesday: days['Wednesday']! ? 1 : 0,

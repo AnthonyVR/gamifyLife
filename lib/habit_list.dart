@@ -73,7 +73,7 @@ class HabitListState extends State<HabitList> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(habits[index].title),
-                      Text('Reward: ${habits[index].reward} coins'),
+                      Text('Difficulty: ${habits[index].difficulty} coins'),
                       // Display the days fields here
                       Text('${activeDays.join(', ')}'),
                       Text('Created: ${habits[index].created}'),

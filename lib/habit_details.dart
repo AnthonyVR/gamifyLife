@@ -173,7 +173,7 @@ class HabitDetailsState extends State<HabitDetails> {
                                               height: 20,
                                               width: 20,
                                             ),
-                                            Text(' ${history[index]['amount'] * habit?.reward}'),
+                                            Text(' ${history[index]['amount'] * habit?.difficulty}'),
                                           ],
                                         ),
                                       ),

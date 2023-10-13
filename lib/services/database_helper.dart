@@ -20,6 +20,9 @@ import '../models/building.dart';
 import '../models/unit.dart';
 import '../models/misc_object.dart';
 import '../models/village.dart';
+import '../models/event.dart';
+
+
 
 
 class DatabaseHelper {
@@ -57,7 +60,7 @@ class DatabaseHelper {
 
   static final columnId = 'id';
   static final columnTitle = 'title';
-  static final columnReward = 'reward';
+  static final columnDifficulty = 'difficulty';
   static const columnMonday = 'monday';
   static const columnTuesday = 'tuesday';
   static const columnWednesday = "wednesday";
@@ -160,7 +163,7 @@ class DatabaseHelper {
           CREATE TABLE $habitsTable (
             $columnId INTEGER PRIMARY KEY,
             $columnTitle TEXT NOT NULL,
-            $columnReward INTEGER NOT NULL,
+            $columnDifficulty INTEGER NOT NULL,
             $columnMonday INTEGER NOT NULL,
             $columnTuesday INTEGER NOT NULL,
             $columnWednesday INTEGER NOT NULL,
@@ -198,17 +201,19 @@ class DatabaseHelper {
     await Unit.createTable(db);
     await MiscObject.createTable(db);
     await Attack.createTable(db);
+    await Event.createTable(db);
 
     // INSERT INITIAL PLAYER
-    await Player.insertPlayer(db, Player(id: 1, level: 1, score: 0, coins: 0));
+    await Player.insertPlayer(db, Player(id: 1, level: 1, score: 0, rewardFactor: 1));
 
     // INSERT FIRST VILLAGES
-    await Village.insertVillage(db, Village(id: 1, name: 'Your village', owned: 1, row: 15, column: 15));
-    await Village.insertVillage(db, Village(id: 2, name: 'Enemy village', owned: 0, row: 11, column: 14));
-    await Village.insertVillage(db, Village(id: 3, name: 'Your village 2', owned: 1, row: 17, column: 17));
+    await Village.insertVillage(db, Village(id: 1, name: 'Your village', owned: 1, row: 15, column: 15, coins: 30));
+    await Village.insertVillage(db, Village(id: 2, name: 'Enemy village', owned: 0, row: 11, column: 14, coins: 100));
+    await Village.insertVillage(db, Village(id: 3, name: 'Your village 2', owned: 1, row: 17, column: 17, coins: 40));
 
     // CREATE INITIAL VILLAGE WITH ALL OF ITS INITIAL TILES, UNITS, AND BUILDINGS AND OBJECTS
     await Village.createInitialVillage(db, 1);
+    await Village.createInitialVillage(db, 2);
     await Village.createInitialVillage(db, 3);
 
     // FOR TESTING PURPOSE: add some units to own and enemy village
@@ -235,6 +240,14 @@ class DatabaseHelper {
       }
     }
     print("All tables dropped");
+  }
+
+
+  Future<void> clearAndRebuildDatabase() async {
+
+    await clearDatabase();
+    await createInitialDatabase();
+
   }
 
 

@@ -58,6 +58,7 @@ class _BarracksViewState extends State<BarracksView> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
+          backgroundColor: Colors.brown[700],
           title: Text('Barracks'),
           bottom: TabBar(
             tabs: [
@@ -77,206 +78,129 @@ class _BarracksViewState extends State<BarracksView> {
   }
 
   Widget _buildRecruitmentView() {
-    return FutureBuilder<List<Unit>>(
-      future: fetchUnits(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error fetching units.'));
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(child: Text('No units available.'));
-        } else {
-          List<Unit> units = snapshot.data!;
-          return ListView.builder(
-            itemCount: units.length,
-            itemBuilder: (BuildContext context, int index) {
-              Unit unit = units[index];
-              return Card(
-                elevation: 5.0,
-                margin: const EdgeInsets.all(10.0),
-                child: Padding(
-                  padding: const EdgeInsets.all(15.0),
-                  child: Row(
-                    children: [
-                      // 1st Column: Unit Name and Amount
-                      Expanded(
-                        flex: 2, // Allocate more space for the merged column
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center, // Center the content vertically
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row( // Wrap the Image and the Amount Text inside a Row
-                              crossAxisAlignment: CrossAxisAlignment.center, // Ensure items in the row are vertically centered
-                              children: [
-                                Text(
-                                  '${unit.amount}',
-                                  style: TextStyle(
-                                    fontSize: 40, // Make the amount stand out
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Image.asset(
-                                  unit.image,
-                                  width: 60,
-                                  height: 60,
-                                ),
-                                SizedBox(width: 10.0), // Provides a little spacing between image and text
-                              ],
-                            ),
-                            Text(
-                              '${unit.name} (lvl.${unit.level})',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 24,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // 2nd Column: Attack, Defence, and Level Up
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Atk: ${unit.offence}'),
-                            Text('Def: ${unit.defence}'),
-                            SizedBox(height: 8.0),
-                          ],
-                        ),
-                      ),
-                      // 3rd Column: Create and Place in Village buttons
-                      // 3rd Column: Create and Place in Village buttons
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
-                              children: [
-                                IconButton(
-                                  icon: Icon(Icons.add_circle_outlined, size: 50, color: Colors.green), // Adjust size and color as needed
-                                  onPressed: () {
-                                    addUnit(unit.id);
-                                    setState(() {});
-                                  },
-                                  color: Colors.green, // This will be the color of the button's background
-                                  padding: EdgeInsets.zero,
-                                ),
-                                SizedBox(width: 10.0),
-                                SvgPicture.asset(
-                                  'assets/coins.svg',
-                                  width: 13,
-                                  height: 13,
-                                ),
-                                SizedBox(width: 3.0),
-                                Text('${unit.cost}'),
-                              ],
-                            ),
-                            SizedBox(height: 8.0),
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(context, {'unit_id': unit.id});
-                                //placeUnitInVillage(unit.id);
-                              },
-                              child: Text('Place in Village'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        }
-      },
-    );
-  }
+    return Stack(
+      children: [
+        // Background Image
+        Positioned.fill(
+          child: Image.asset(
+            'assets/barracks_view.webp',  // Replace this with the path to your image
+            fit: BoxFit.cover, // This will make sure the image covers the entire view
+          ),
+        ),
 
-  Widget _buildTrainingView() {
-    return FutureBuilder<List<Unit>>(
-      future: fetchUnits(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error fetching units.'));
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(child: Text('No units available.'));
-        } else {
-          List<Unit> units = snapshot.data!;
-          return ListView.builder(
-            itemCount: units.length,
-            itemBuilder: (BuildContext context, int index) {
-              Unit unit = units[index];
-              return Card(
-                elevation: 5.0,
-                margin: const EdgeInsets.all(10.0),
-                child: Padding(
-                  padding: const EdgeInsets.all(15.0),
-                  child: Row(
-                    children: [
-                      // 1st Column: Unit Name and Amount
-                      Expanded(
-                        flex: 2, // Allocate more space for the merged column
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center, // Center the content vertically
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Image.asset(
-                              unit.image,
-                              width: 60,
-                              height: 60,
-                            ),
-                            Text(
-                              '${unit.name} (lvl.${unit.level})',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 24,
-                              ),
-                            ),
-                          ],
-                        ),
+        // Content on top of the image
+        FutureBuilder<List<Unit>>(
+          future: fetchUnits(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Error fetching units.'));
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Center(child: Text('No units available.'));
+            } else {
+              List<Unit> units = snapshot.data!;
+              return ListView.builder(
+                itemCount: units.length,
+                itemBuilder: (BuildContext context, int index) {
+                  Unit unit = units[index];
+                  return Theme(
+                    data: Theme.of(context).copyWith(
+                      textTheme: Theme.of(context).textTheme.apply(
+                        bodyColor: Colors.white,  // Default text color.
+                        displayColor: Colors.red,  // Default text color for headings, titles, etc.
                       ),
-                      // 2nd Column: Attack, Defence, and Level Up
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    ),
+                    child: Card(
+                      color: Colors.brown[800],
+                      elevation: 5.0,
+                      margin: const EdgeInsets.all(10.0),
+                      child: Padding(
+                        padding: const EdgeInsets.all(15.0),
+                        child: Row(
                           children: [
-                            Text('Atk: ${unit.offence} (+5)'),
-                            Text('Def: ${unit.defence} (+5)'),
-                            SizedBox(height: 8.0),
-                          ],
-                        ),
-                      ),
-                      // 3rd Column: Create and Place in Village buttons
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            ElevatedButton(
-                              onPressed: () {
-                                levelUpUnit(unit.id);
-                                setState(() {});
-                              },
-                              style: ButtonStyle(
-                                backgroundColor: MaterialStateProperty.all(Colors.green),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
+                            // 1st Column: Unit Name and Amount
+                            Expanded(
+                              flex: 2, // Allocate more space for the merged column
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center, // Center the content vertically
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Level Up '),
+                                  Row( // Wrap the Image and the Amount Text inside a Row
+                                    crossAxisAlignment: CrossAxisAlignment.center, // Ensure items in the row are vertically centered
+                                    children: [
+                                      Text(
+                                        '${unit.amount}',
+                                        style: TextStyle(
+                                          fontSize: 40, // Make the amount stand out
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Image.asset(
+                                        unit.image,
+                                        width: 60,
+                                        height: 60,
+                                      ),
+                                      SizedBox(width: 10.0), // Provides a little spacing between image and text
+                                    ],
+                                  ),
                                   Text(
-                                    '(${unit.id} coins)',
+                                    '${unit.name} (lvl.${unit.level})',
                                     style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.yellow[600],
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 24,
                                     ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // 2nd Column: Attack, Defence, and Level Up
+                            Expanded(
+                              flex: 2,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Atk: ${unit.offence}'),
+                                  Text('Def: ${unit.defence}'),
+                                  SizedBox(height: 8.0),
+                                ],
+                              ),
+                            ),
+                            // 3rd Column: Create and Place in Village buttons
+                            // 3rd Column: Create and Place in Village buttons
+                            Expanded(
+                              flex: 2,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(Icons.add_circle_outlined, size: 50, color: Colors.green), // Adjust size and color as needed
+                                        onPressed: () async {
+                                          await addUnit(unit.id);
+                                          setState(() {});
+                                        },
+                                        color: Colors.green, // This will be the color of the button's background
+                                        padding: EdgeInsets.zero,
+                                      ),
+                                      SizedBox(width: 10.0),
+                                      SvgPicture.asset(
+                                        'assets/coins.svg',
+                                        width: 13,
+                                        height: 13,
+                                      ),
+                                      SizedBox(width: 3.0),
+                                      Text('${unit.cost}'),
+                                    ],
+                                  ),
+                                  SizedBox(height: 8.0),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pop(context, {'unit_id': unit.id});
+                                      //placeUnitInVillage(unit.id);
+                                    },
+                                    child: Text('Place in Village'),
                                   ),
                                 ],
                               ),
@@ -284,15 +208,222 @@ class _BarracksViewState extends State<BarracksView> {
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
+                    )
+                  );
+                },
               );
-            },
-          );
-        }
-      },
+            }
+          },
+        ),
+      ],
     );
+
+
+
+    // return FutureBuilder<List<Unit>>(
+    //   future: fetchUnits(),
+    // );
+  }
+
+  Widget _buildTrainingView() {
+
+    return Stack(
+      children: [
+        // Background Image
+        Positioned.fill(
+          child: Image.asset(
+            'assets/barracks_view.webp',  // Replace this with the path to your image
+            fit: BoxFit.cover, // This will make sure the image covers the entire view
+          ),
+        ),
+
+        // Content on top of the image
+        FutureBuilder<List<Unit>>(
+          future: fetchUnits(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Error fetching units.'));
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Center(child: Text('No units available.'));
+            } else {
+              List<Unit> units = snapshot.data!;
+              return ListView.builder(
+                itemCount: units.length,
+                itemBuilder: (BuildContext context, int index) {
+                  Unit unit = units[index];
+
+                  return Theme(
+                      data: Theme.of(context).copyWith(
+                        textTheme: Theme.of(context).textTheme.apply(
+                          bodyColor: Colors.white,  // Default text color.
+                          displayColor: Colors.red,  // Default text color for headings, titles, etc.
+                        ),
+                      ),
+                      child: Card(
+                        color: Colors.brown[700],
+                        elevation: 5.0,
+                        margin: const EdgeInsets.all(10.0),
+                        child: Padding(
+                          padding: const EdgeInsets.all(15.0),
+                          child: Row(
+                            children: [
+                              // 1st Column: Unit Name and Amount
+                              Expanded(
+                                flex: 2, // Allocate more space for the merged column
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center, // Center the content vertically
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Image.asset(
+                                      unit.image,
+                                      width: 60,
+                                      height: 60,
+                                    ),
+                                    Text(
+                                      '${unit.name} (lvl.${unit.level})',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 24,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // 2nd Column: Attack, Defence, and Level Up
+                              Expanded(
+                                flex: 2,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Atk: ${unit.offence} (+5)'),
+                                    Text('Def: ${unit.defence} (+5)'),
+                                    SizedBox(height: 8.0),
+                                  ],
+                                ),
+                              ),
+                              // 3rd Column: Create and Place in Village buttons
+                              Expanded(
+                                flex: 2,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    ElevatedButton(
+                                      onPressed: () async {
+                                        await levelUpUnit(unit.id);
+                                        setState(() {});
+                                      },
+                                      style: ButtonStyle(
+                                        backgroundColor: MaterialStateProperty.all(Colors.green),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text('Level Up '),
+                                          Text(
+                                            '(${unit.id} coins)',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.yellow[600],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                  );
+
+                  return Card(
+                    elevation: 5.0,
+                    margin: const EdgeInsets.all(10.0),
+                    child: Padding(
+                      padding: const EdgeInsets.all(15.0),
+                      child: Row(
+                        children: [
+                          // 1st Column: Unit Name and Amount
+                          Expanded(
+                            flex: 2, // Allocate more space for the merged column
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center, // Center the content vertically
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Image.asset(
+                                  unit.image,
+                                  width: 60,
+                                  height: 60,
+                                ),
+                                Text(
+                                  '${unit.name} (lvl.${unit.level})',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 24,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // 2nd Column: Attack, Defence, and Level Up
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Atk: ${unit.offence} (+5)'),
+                                Text('Def: ${unit.defence} (+5)'),
+                                SizedBox(height: 8.0),
+                              ],
+                            ),
+                          ),
+                          // 3rd Column: Create and Place in Village buttons
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    await levelUpUnit(unit.id);
+                                    setState(() {});
+                                  },
+                                  style: ButtonStyle(
+                                    backgroundColor: MaterialStateProperty.all(Colors.green),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text('Level Up '),
+                                      Text(
+                                        '(${unit.id} coins)',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.yellow[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            }
+          },
+        ),
+      ],
+    );
+
   }
 
 }

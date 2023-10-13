@@ -1,9 +1,14 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:habit/event_view.dart';
 import 'package:habit/habit_list.dart';
 import 'package:habit/habit_details.dart';
 import 'package:habit/models/attack.dart';
 import 'package:habit/village_view.dart';
+import 'attack_view.dart';
+import 'database_view.dart';
+import 'models/event.dart';
 import 'models/habit.dart';
 import '/services/database_helper.dart';
 import 'habit_creator.dart';
@@ -89,16 +94,18 @@ class _HomePageState extends State<HomePage> {
   String date = "";
   String weekday = 'saturday';
 
+  int eventsOccurred = 0;
 
-    Map<String, bool> days = {
-    'Monday': false,
-    'Tuesday': false,
-    'Wednesday': false,
-    'Thursday': false,
-    'Friday': false,
-    'Saturday': false,
-    'Sunday': false,
-  };
+  // Called when the application starts
+  Future<void> calculateEvents() async {
+    // add game_opened entry
+    Event game_opened = Event(eventType: 'game_opened', timestamp: DateTime.now(), info: {});
+    eventsOccurred = await game_opened.calculateEvents();
+    game_opened.insertToDb();
+
+    setState(() {
+    });
+  }
 
   void printDbPath() async {
     var databasesPath = await getDatabasesPath();
@@ -111,9 +118,7 @@ class _HomePageState extends State<HomePage> {
     printDbPath();
     super.initState();
 
-    //playerModel.loadPlayer();
-
-    //Attack.createTable();
+    //calculateEvents();
 
     currentDate = DateTime.now().subtract(const Duration(hours: 8));
     readableDate = DateFormat('EE, d MMMM y').format(currentDate);
@@ -124,8 +129,6 @@ class _HomePageState extends State<HomePage> {
 
     });
   }
-
-
 
   void _editHabit(BuildContext context, int index) {
     Habit habit = habits[index];
@@ -199,6 +202,12 @@ class _HomePageState extends State<HomePage> {
                         await _goToNextDate();
                       },
                     ),
+                    IconButton(
+                      icon: Icon(Icons.access_alarm),
+                      onPressed: () async {
+                        await calculateEvents();
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -206,15 +215,33 @@ class _HomePageState extends State<HomePage> {
                 flex: 2,  // this will allocate 1 part of the space to this child
                 child: Align(
                   alignment: Alignment.centerRight,
+                  child: FutureBuilder<double>(
+                    future: Village.getTotalRewardFactor(),
+                    builder: (BuildContext context, AsyncSnapshot<double> snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return CircularProgressIndicator();  // show loading spinner while waiting
+                      } else if (snapshot.hasError) {
+                        return Text('Error: ${snapshot.error}');  // show error message if there's any error
+                      } else {
+                        return Text('${snapshot.data}');  // display total difficultys when data is available
+                      }
+                    },
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 2,  // this will allocate 1 part of the space to this child
+                child: Align(
+                  alignment: Alignment.centerRight,
                   child: FutureBuilder<int>(
-                    future: dbHelper.habitHistoryDao.getTotalRewardsForToday(date, weekday),
+                    future: dbHelper.habitHistoryDao.getTotalDifficultysForToday(date, weekday),
                     builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return CircularProgressIndicator();  // show loading spinner while waiting
                       } else if (snapshot.hasError) {
                         return Text('Error: ${snapshot.error}');  // show error message if there's any error
                       } else {
-                        return Text('${snapshot.data}');  // display total rewards when data is available
+                        return Text('${snapshot.data}');  // display total difficultys when data is available
                       }
                     },
                   ),
@@ -253,6 +280,15 @@ class _HomePageState extends State<HomePage> {
               },
             ),
             ListTile(
+              title: Text('View database'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => DatabaseView()),
+                );
+              },
+            ),
+            ListTile(
               title: Text('Remove ALL database tables'),
               onTap: () {
                 if(GlobalVariables.appMode == 'test' || 1 == 1){
@@ -270,6 +306,19 @@ class _HomePageState extends State<HomePage> {
               onTap: () {
                 if(GlobalVariables.appMode == 'test' || 1 == 1){
                   dbHelper.createInitialDatabase();
+                  setState(() {
+                  });
+                }
+                else {
+                  print("cannot remove production data");
+                }
+              },
+            ),
+            ListTile(
+              title: Text('Remove AND Rebuild ALL initial database contents'),
+              onTap: () {
+                if(GlobalVariables.appMode == 'test' || 1 == 1){
+                  dbHelper.clearAndRebuildDatabase();
                   setState(() {
                   });
                 }
@@ -354,23 +403,31 @@ class _HomePageState extends State<HomePage> {
                     itemCount: snapshot.hasData ? snapshot.data!.length : 0,
                     itemBuilder: (context, index) {
                       bool isCompleted = snapshot.data![index]['completedCount'] >= snapshot.data![index][weekday];
+                      double completedpercentage =  snapshot.data![index]['completedCount'] / snapshot.data![index][weekday] * 10;
+                      int difficulty = snapshot.data![index]['difficulty'];
 
                       return ListTile(
                           title: Row(
                             children: <Widget>[
                               Container(
-                                width: 20, // Set width for SVG
-                                child: SvgPicture.asset('assets/coin.svg',
-                                  height: 20,
-                                  width: 20,),
+                                width: 20,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: getDifficultyColor(difficulty),
+                                    width: isCompleted? 10 : completedpercentage, // Set the width of the border to your desired value
+                                  ),
+                                  //color: getDifficultyColor(difficulty),
+                                  shape: BoxShape.circle,
+                                ),
                               ),
                               Container(
                                 width: 40, // Set width for Text
                                 child: Text(
-                                  ' ${snapshot.data![index]['reward']}',
+                                  ' $difficulty',
                                   style: TextStyle(
                                     color: isCompleted ? Colors.grey : Colors.yellow,
-                                    fontSize: 20,
+                                    fontSize: 24,
                                   ),
                                 ),
                               ),
@@ -391,12 +448,17 @@ class _HomePageState extends State<HomePage> {
                                 child: IconButton(
                                   icon: Icon(Icons.undo_outlined,
                                       color: isCompleted ? Colors.grey : Colors.white, size: 20),
-                                  onPressed: () {
+                                  onPressed: () async{
+
+                                    await playerModel.removeScore(snapshot.data![index]['difficulty']);
+                                    await dbHelper.habitHistoryDao.undo(snapshot.data![index]['id'], date);
+
+                                    // same function as when you complete the habit but then with a negative number
+                                    await Village.divideCoins(-snapshot.data![index]['difficulty']);
+
                                     setState(() {
-                                      playerModel.removeCoins(snapshot.data![index]['reward']);
-                                      playerModel.removeScore(snapshot.data![index]['reward']);
-                                      dbHelper.habitHistoryDao.undo(snapshot.data![index]['id'], date);
                                     });
+
                                   },
                                 ),
                               ),
@@ -413,7 +475,7 @@ class _HomePageState extends State<HomePage> {
                                       width: 30, // Set width for Text
                                       child: Text('x${snapshot.data![index]['completedCount']} = ',
                                           style: TextStyle(
-                                              color: isCompleted ? Colors.grey : Colors.black)),
+                                              color: isCompleted ? Colors.grey : Colors.white)),
                                     ),
                                     Container(
                                       width: 20, // Set width for SVG
@@ -426,9 +488,9 @@ class _HomePageState extends State<HomePage> {
                                     Container(
                                       width: 28, // Set width for Text
                                       child: Text(
-                                          ' ${snapshot.data![index]['reward'] * snapshot.data![index]['completedCount']} ',
+                                          ' ${snapshot.data![index]['difficulty'] * snapshot.data![index]['completedCount']} ',
                                           style: TextStyle(
-                                              color: isCompleted ? Colors.grey : Colors.black)),
+                                              color: isCompleted ? Colors.grey : Colors.white)),
                                     ),
                                   ],
                                 ),
@@ -444,8 +506,9 @@ class _HomePageState extends State<HomePage> {
                             });
 
                             // update the coins in the player table
-                            await playerModel.addCoins(snapshot.data![index]['reward']);
-                            await playerModel.addScore(snapshot.data![index]['reward']);
+                            //await playerModel.addRewardFactor(snapshot.data![index]['difficulty']);
+                            await playerModel.addScore(snapshot.data![index]['difficulty']);
+                            await Village.divideCoins(snapshot.data![index]['difficulty']);
 
                             setState(() {
                             });
@@ -479,6 +542,7 @@ class _HomePageState extends State<HomePage> {
         },
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.orange,
         onPressed: () async {  // Note the async keyword
           await showDialog(  // Note the await keyword
             context: context,
@@ -500,12 +564,77 @@ class _HomePageState extends State<HomePage> {
             children: <Widget>[
               Expanded(
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SvgPicture.asset('assets/coins.svg',
-                      height: 40,
-                      width: 40,),
-                    Text(' ${playerModel.player.coins}', style: const TextStyle(fontSize: 30, color: Color(0xFFf5cd2c), fontWeight: FontWeight.bold)),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EventView(),
+                            fullscreenDialog: true, // make the page full screen
+                          ),
+                        );
+                      },
+                      child: Container(  // <-- Wrap Stack with a Container
+                        margin: EdgeInsets.all(8),  // <-- Add margin around Stack
+                        child: Stack(
+                          clipBehavior: Clip.none,  // <-- Allow for overflow outside the Stack
+                          children: <Widget>[
+                            // The icon itself
+                            Image.asset(
+                              'assets/attack.png',
+                              height: 45,
+                              width: 45,
+                            ),
+
+                            // The number displayed on top of it
+                            Positioned(
+                              top: -18,  // <-- Now you can use negative values
+                              right: -10,  // <-- Now you can use negative values
+                              child: Container(
+                                padding: EdgeInsets.all(6),  // Adjust the padding as needed
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.red,
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  '$eventsOccurred', // your variable here
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,  // Adjust font size as needed
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AttackView(),
+                            fullscreenDialog: true, // make the page full screen
+                          ),
+                        );
+                      },
+                      child: Image.asset(
+                        'assets/attack.png',
+                        height: 45,
+                        width: 45,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -560,6 +689,16 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+
+  Color getDifficultyColor(int difficulty) {
+    if (difficulty >= 1 && difficulty <= 3) {
+      return Colors.green;
+    } else if (difficulty >= 4 && difficulty <= 7) {
+      return Colors.orange;
+    } else {
+      return Colors.red;
+    }
   }
 
 

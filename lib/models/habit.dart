@@ -1,7 +1,7 @@
 class Habit {
   int id;
   String title;
-  int reward;
+  int difficulty;
   int monday;
   int tuesday;
   int wednesday;
@@ -16,7 +16,7 @@ class Habit {
   // Habit constructor
   Habit({required this.id,
     required this.title,
-    required this.reward,
+    required this.difficulty,
     required this.monday,
     required this.tuesday,
     required this.wednesday,
@@ -31,7 +31,7 @@ class Habit {
   Map<String, dynamic> toMap() {
     var map = <String, dynamic>{
       'title': title,
-      'reward': reward,
+      'difficulty': difficulty,
       'monday': monday,
       'tuesday': tuesday,
       'wednesday': wednesday,
@@ -51,7 +51,7 @@ class Habit {
   Habit.fromMap(Map<String, dynamic> map)
       : id = map['id'] as int? ?? 0,
         title = map['title'],
-        reward = map['reward'],
+        difficulty = map['difficulty'],
         monday = map['monday'],
         tuesday = map['tuesday'],
         wednesday = map['wednesday'],
