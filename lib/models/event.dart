@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:habit/models/unit.dart';
 import 'package:habit/models/village.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:habit/services/database_helper.dart';
+
+import 'attack.dart';
 
 class Event {
   final int? id;
@@ -58,7 +61,8 @@ class Event {
     final List<Map<String, dynamic>> maps = await db.rawQuery('''
       SELECT 
         *
-      FROM events 
+      FROM events
+      ORDER BY id DESC 
     ''');
     return List.generate(maps.length, (i) => Event.fromMap(maps[i]));
   }
@@ -133,12 +137,12 @@ class Event {
     DateTime currentTimeStamp = DateTime.now();
 
     // calculate time between game opened
-    int hoursSinceGameOpened = currentTimeStamp.difference(lastGameOpened).inDays;
+    int hoursSinceGameOpened = currentTimeStamp.difference(lastGameOpened).inMinutes;
     print(hoursSinceGameOpened);
 
 
     int numberOfVillageSpawns =  calculateNumberOfEvents(hoursSinceGameOpened, villageSpawnFrequency);
-    numberOfVillageSpawns = 0;
+    //numberOfVillageSpawns = 0;
     for (int i = 0; i < numberOfVillageSpawns; i++) {
       Map coordinates = await Village.spawnVillage();
       Event(timestamp: currentTimeStamp, eventType: 'village_spawn', info: coordinates).insertToDb();
@@ -153,7 +157,7 @@ class Event {
       int numberOfUnitTrainings =  calculateNumberOfEvents(hoursSinceGameOpened, unitTrainingFrequency);
       int numberOfAttacks =  calculateNumberOfEvents(hoursSinceGameOpened, attackFrequency);
 
-      numberOfBuildingLevelUps = 0;
+      //numberOfBuildingLevelUps = 0;
       for (int i = 0; i < numberOfBuildingLevelUps; i++) {
         String building = await village.updateEnemyBuilding();
         print(building);
@@ -161,7 +165,7 @@ class Event {
         eventsOccurred++;
       }
 
-      numberOfUnitCreations = 0;
+      //numberOfUnitCreations = 0;
       for (int i = 0; i < numberOfUnitCreations; i++) {
         Map unitAdded = await village.addEnemyUnit();
         print(unitAdded);
@@ -169,7 +173,7 @@ class Event {
         eventsOccurred++;
       }
 
-      numberOfUnitTrainings = 1;
+      //numberOfUnitTrainings = 0;
       for (int i = 0; i < numberOfUnitTrainings; i++) {
         Map unitTrained = await village.trainEnemyUnit();
         print(unitTrained);
@@ -177,11 +181,45 @@ class Event {
         eventsOccurred++;
       }
 
+      //numberOfAttacks = 0;
       for (int i = 0; i < numberOfAttacks; i++) {
 
+        //// pick a random village from the player's villages
+        List<Village> playerVillages = await Village.getPlayerVillages();
+
+        // Create a Random instance
+        var random = Random();
+
+        // Generate a random index based on the list length
+        int randomIndex = random.nextInt(playerVillages.length);
+
+        // Get the village at the random index
+        Village randomVillage = playerVillages[randomIndex];
+
+        // Access the 'id' of the randomly selected village
+        int playerRandomVillageId = randomVillage.id!;
+
+        ////
+
+        List<Unit> enemySourceUnitsList = await village.getUnits();
+
+        List<Map<String, dynamic>> enemySourceUnits = enemySourceUnitsList.map((unit) {
+          return {
+            'unit': unit,
+            'amount': unit.amount,
+          };
+        }).toList();
+
+        // REMOVE THIS LATER !!!
+        playerRandomVillageId = 1;
+
+        Map attackInfo = await Attack.attackPlayerVillage(village.id!, playerRandomVillageId, DateTime.now(), enemySourceUnits);
+        Event(timestamp: currentTimeStamp, eventType: 'attack', info: {}).insertToDb();
+        eventsOccurred++;
       }
 
-      }
+
+    }
 
     return eventsOccurred;
 

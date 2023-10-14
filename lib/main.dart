@@ -556,7 +556,7 @@ class _HomePageState extends State<HomePage> {
         child: Icon(Icons.add),
       ),
       bottomNavigationBar: BottomAppBar(
-        color: Colors.white24,
+        color: Colors.white10,
         child: Padding(
           padding: EdgeInsets.all(10.0),
           child: Row(
@@ -583,7 +583,7 @@ class _HomePageState extends State<HomePage> {
                           children: <Widget>[
                             // The icon itself
                             Image.asset(
-                              'assets/attack.png',
+                              'assets/event_log.png',
                               height: 45,
                               width: 45,
                             ),

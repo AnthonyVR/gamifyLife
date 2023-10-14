@@ -153,7 +153,7 @@ class Attack {
           return (sum + unit.offence * amount).round();
 
         } else if(type == 'defence'){
-          return (sum + unit.offence * amount).round();
+          return (sum + unit.defence * amount).round();
         } else {
           return 0;
         }
@@ -176,17 +176,71 @@ class Attack {
       }
     }
 
+  static void _distributeDefendingPlayerCasualties(List<Map<String, dynamic>> units, int casualties, int totalStrength) {
+    // First, sort the units list by 'row' in descending order (higher rows first).
+    units.sort((a, b) => b['unit'].row.compareTo(a['unit'].row));
+
+    if (totalStrength == 0) {
+      // If totalStrength is 0, all units take maximum casualties.
+      for (Map<String, dynamic> unitMap in units) {
+        unitMap['amount'] = 0; // All units are casualties.
+      }
+    } else {
+      int currentRow = units.first['unit'].row; // Start with the highest row
+      List<Map<String, dynamic>> currentRowUnits = [];
+      int currentRowStrength = 0;
+
+      for (Map<String, dynamic> unitMap in units) {
+        Unit unit = unitMap['unit'];
+
+        // If this unit is in the current row, add it to the list and add its strength to the current row's strength
+        if (unit.row == currentRow) {
+          currentRowUnits.add(unitMap);
+          currentRowStrength += unit.offence; // or unit.defence, depending on which value represents the unit's strength
+        } else {
+          // If this unit is in a lower row, distribute the casualties among the units in the current row
+          if (casualties > 0 && currentRowUnits.isNotEmpty) {
+            for (Map<String, dynamic> currentUnitMap in currentRowUnits) {
+              int unitCasualties = (casualties * currentUnitMap['unit'].offence / currentRowStrength).toInt();
+              int remainingUnits = (currentUnitMap['amount'] - unitCasualties).clamp(0, currentUnitMap['unit'].amount);
+              currentUnitMap['amount'] = remainingUnits;
+              casualties -= unitCasualties;
+            }
+          }
+
+          // Then, move on to the next row
+          currentRow = unit.row;
+          currentRowUnits = [unitMap];
+          currentRowStrength = unit.offence; // or unit.defence, depending on which value represents the unit's strength
+        }
+
+        // If there are no more casualties to distribute, break the loop.
+        if (casualties <= 0) break;
+      }
+
+      // If there are any casualties left after the loop, distribute them among the units in the lowest row
+      if (casualties > 0 && currentRowUnits.isNotEmpty) {
+        for (Map<String, dynamic> currentUnitMap in currentRowUnits) {
+          int unitCasualties = (casualties * currentUnitMap['unit'].offence / currentRowStrength).toInt();
+          int remainingUnits = (currentUnitMap['amount'] - unitCasualties).clamp(0, currentUnitMap['unit'].amount);
+          currentUnitMap['amount'] = remainingUnits;
+          casualties -= unitCasualties;
+        }
+      }
+    }
+  }
+
 
   static List<Map<String, dynamic>> deepCopy(List<Map<String, dynamic>> original) {
       return original.map((map) => Map<String, dynamic>.from(map)).toList();
     }
 
-    static Future<void> attackVillage(int sourceVillageId, int destinationVillageId, List<Map<String, dynamic>> sourceUnits) async {
+    static Future<void> attackEnemyVillage(int sourceVillageId, int destinationVillageId, List<Map<String, dynamic>> sourceUnits) async {
       final db = await DatabaseHelper.instance.database;
 
       Village sourceVillage = await Village.getVillageById(sourceVillageId);
       Village destinationVillage = await Village.getVillageById(destinationVillageId);
-      var currentTime = DateTime.now();;
+      var currentTime = DateTime.now();
 
       int slowestSpeed = _calculateSlowestSpeed(sourceUnits);
       double distanceBetweenVillages = _calculateDistanceBetweenVillages(sourceVillage, destinationVillage);
@@ -210,8 +264,6 @@ class Attack {
       if(totalDefence.isNaN || totalDefence.isInfinite){
         totalDefence = 0;
       }
-
-      print("test");
 
       int luck = _generateLuck();
       double luckModifier = _calculateLuckModifier(luck);
@@ -263,8 +315,8 @@ class Attack {
       _distributeCasualties(destinationUnitsAfter, defenderCasualties, totalDefence);
 
 
-      print(sourceUnitsBefore);
-      print(destinationUnitsBefore);
+      // print(sourceUnitsBefore);
+      // print(destinationUnitsBefore);
 
       print(arrivalTime);
       print(luckModifier);
@@ -308,10 +360,163 @@ class Attack {
 
     }
 
-  ////
+    static Future<Map> attackPlayerVillage(int sourceVillageId, int destinationVillageId, DateTime attackStartTimeStamp, List<Map<String, dynamic>> sourceUnits) async {
+    final db = await DatabaseHelper.instance.database;
+
+    Village sourceVillage = await Village.getVillageById(sourceVillageId);
+    Village destinationVillage = await Village.getVillageById(destinationVillageId);
+
+    List<Unit> destinationUnitsList = await destinationVillage.getDefendingUnits();
+
+    // Create a map to keep track of unique row and unit combinations and their counts.
+    Map<String, Map<String, dynamic>> uniqueRowUnits = {};
+
+    for (Unit unit in destinationUnitsList) {
+      // Create a unique key based on the row and unit type.
+      String key = '${unit.row}-${unit.id}'; // Assuming 'id' uniquely identifies the unit type.
+
+      // If this key is already in the map, increment the amount, otherwise add it to the map.
+      if (uniqueRowUnits.containsKey(key)) {
+        uniqueRowUnits[key]!['amount'] += 1; // Increment the count.
+      } else {
+        uniqueRowUnits[key] = {
+          'unit': unit,
+          'amount': 1,
+          'row': unit.row,
+        };
+      }
+    }
+
+    // Convert the map back to a list.
+    List<Map<String, dynamic>> destinationUnits = uniqueRowUnits.values.toList();
+
+    // for (Map<String, dynamic> unitEntry in destinationUnits) {
+    //   Unit unit = unitEntry['unit']; // Assuming 'unit' is an object with 'defence' and 'name' properties.
+    //   int amount = unitEntry['amount']; // Directly from the map entry.
+    //
+    //   // Now, we're assuming 'unit' has 'defence' and 'name' properties. Adjust if your property names are different.
+    //   var defence = unit.defence;
+    //   var name = unit.name;
+    //
+    //   print('Defence: $defence, Amount: $amount, Name: $name');
+    // }
+
+    int slowestSpeed = _calculateSlowestSpeed(sourceUnits);
+    double distanceBetweenVillages = _calculateDistanceBetweenVillages(sourceVillage, destinationVillage);
+    DateTime arrivalTime = _calculateArrivalTime(attackStartTimeStamp, distanceBetweenVillages, slowestSpeed);
 
 
-  //// FUNCTIONS FOR ATTACK_VIEW.DART
+    List<Map<String, dynamic>> sourceUnitsBefore = deepCopy(sourceUnits);
+    List<Map<String, dynamic>> destinationUnitsBefore = deepCopy(destinationUnits);
+
+
+    int totalOffence = _calculateStrength(sourceUnits, 'offence');
+    int totalDefence = _calculateStrength(destinationUnits, 'defence');
+
+    print('totalOffence: $totalOffence | totalDefence: $totalDefence');
+
+    if(totalDefence.isNaN || totalDefence.isInfinite){
+      totalDefence = 0;
+    }
+
+    int luck = _generateLuck();
+    double luckModifier = _calculateLuckModifier(luck);
+
+    totalOffence = (totalOffence * (1 + luckModifier)).toInt();
+    totalDefence = (totalDefence * (1 - luckModifier)).toInt();
+
+    int attackerCasualties;
+    int defenderCasualties;
+
+    // the decay model function gives less casualties for the winner when he has an
+    // advantage and more losses when it's nearly equal
+    // attackerCasualties=totalDefence×e−k(ratio−1)
+    double ratio;
+    int outcome = 0;
+    if (totalDefence == 0) { // to prevent division by zero
+      ratio = 10.0; // or some high number to indicate a huge imbalance in favor of the offense
+    } else {
+      ratio = totalOffence.toDouble() / totalDefence.toDouble();
+    }
+
+    const k = 1.0; // Adjust this constant based on game balancing needs
+
+    if (totalOffence == totalDefence) {
+      attackerCasualties = totalOffence;
+      defenderCasualties = totalDefence;
+    } else if (totalOffence > totalDefence) {
+      // if player owns the source village and it wins, then outcome is 1
+      if (sourceVillage.owned == 1){
+        outcome = 1;
+      }
+      defenderCasualties = totalDefence;
+      attackerCasualties = (totalDefence * exp(-k * (ratio - 1))).toInt();
+    } else {
+      // if player owns the destination village and it wins, then outcome is 1
+      if (destinationVillage.owned == 1){
+        outcome = 1;
+      }
+      attackerCasualties = totalOffence;
+      defenderCasualties = (totalOffence * exp(-k * (1/ratio - 1))).toInt(); // This can remain as is or be adjusted similarly
+
+    }
+
+    List<Map<String, dynamic>> sourceUnitsAfter = List.from(sourceUnits);
+    List<Map<String, dynamic>> destinationUnitsAfter = List.from(destinationUnits);
+
+    _distributeCasualties(sourceUnitsAfter, attackerCasualties, totalOffence);
+    _distributeDefendingPlayerCasualties(destinationUnitsAfter, defenderCasualties, totalDefence);
+
+
+    // print(sourceUnitsBefore);
+    // print(destinationUnitsBefore);
+
+    print("attack arrival time: $arrivalTime");
+    print("luck: $luckModifier");
+
+    //
+    // print(sourceUnitsAfter);
+    // print(destinationUnitsAfter);
+
+
+    print("source id: $sourceVillageId | destination id: $destinationVillageId");
+
+    String serializeUnits(List<Map> units) {
+      return jsonEncode(units.map((unitMap) => {
+        'unit': {
+          'name': unitMap['unit'].name,
+          'id': unitMap['unit'].id,
+          'image': unitMap['unit'].image
+        },
+        'amount': unitMap['amount']
+      }).toList());
+    }
+
+    Attack attack = Attack(
+        sourceVillageId: sourceVillageId,
+        destinationVillageId: destinationVillageId,
+        startedAt: attackStartTimeStamp,
+        arrivedAt: arrivalTime,
+        sourceUnitsBefore: serializeUnits(sourceUnitsBefore),
+        destinationUnitsBefore: serializeUnits(destinationUnitsBefore),
+        sourceUnitsAfter: serializeUnits(sourceUnitsAfter),
+        destinationUnitsAfter: serializeUnits(destinationUnitsAfter),
+        luck: (luckModifier*100).round(),
+        outcome: outcome,
+        owned: sourceVillage.owned,
+        loot: 0,
+        damage: "None");
+
+    attack.insertToDb();
+
+    return {};
+
+  }
+
+
+
+
+  // FUNCTIONS FOR ATTACK_VIEW.DART
 
   static Future<List<Attack>> getAllAttacks() async {
     Database db = await DatabaseHelper.instance.database;

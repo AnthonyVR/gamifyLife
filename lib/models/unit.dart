@@ -14,6 +14,8 @@ class Unit {
   final int speed;
   int amount;
 
+  var row;
+
   Unit({
     this.id,
     required this.villageId,

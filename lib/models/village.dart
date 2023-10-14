@@ -164,8 +164,11 @@ class Village {
 
 
     // Add units entries with reference to this village to the units table
-    Unit(villageId: villageId, name: "spearman", image: "assets/spearman.png", level: 0, offence: 10, defence: 10, amount: 0, cost: 50, speed: 50).insertToDb();
-    Unit(villageId: villageId, name: "wizard", image: "assets/wizard.png", level: 0, offence: 20, defence: 5, amount: 0, cost: 80, speed: 80).insertToDb();
+    Unit(villageId: villageId, name: "spearman", image: "assets/spearman.png", level: 1, offence: 10, defence: 10, amount: 5, cost: 50, speed: 50).insertToDb();
+    Unit(villageId: villageId, name: "wizard", image: "assets/wizard.png", level: 1, offence: 20, defence: 5, amount: 5, cost: 80, speed: 80).insertToDb();
+    Unit(villageId: villageId, name: "catapult", image: "assets/catapult.png", level: 1, offence: 20, defence: 5, amount: 0, cost: 300, speed: 150).insertToDb();
+    Unit(villageId: villageId, name: "king", image: "assets/king.png", level: 1, offence: 20, defence: 5, amount: 0, cost: 1000, speed: 100).insertToDb();
+
 
   }
 
@@ -367,7 +370,7 @@ class Village {
   Future<List<Unit>> getUnits() async {
     final db = await DatabaseHelper.instance.database;
 
-    // Query the tiles table for the units associated with the given villageId
+    // Query the units table for the units associated with the given villageId
     final List<Map<String, dynamic>> maps = await db.rawQuery('''
     SELECT * 
     FROM units
@@ -379,21 +382,47 @@ class Village {
       //throw Exception('No units found for village with ID $id');
     }
 
+    // Use fromMap to create a list of Unit objects
+    return maps.map((map) => Unit.fromMap(map)).toList();
+  }
+
+
+  // Gets the units that are placed in the village with their row numbers
+  Future<List<Unit>> getDefendingUnits() async {
+    final db = await DatabaseHelper.instance.database;
+
+    // Perform a join query between the 'units' and 'tiles' tables
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+    SELECT units.*, tiles.row_num
+    FROM tiles
+    JOIN units ON tiles.content_id = units.id
+    WHERE tiles.village_id = ? AND tiles.content_type = 'unit'
+  ''', [id]); // assuming `this.id` refers to the current village ID
+
+    if (maps.isEmpty) {
+      print("no defending units found");
+      return [];
+      //throw Exception('No units found for village with ID $id');
+    }
+
+    // Construct list of Unit objects with additional 'row' information
     return List.generate(maps.length, (i) {
-      return Unit(
-        id: maps[i]['id'],
-        name: maps[i]['name'],
-        cost: maps[i]['cost'],
-        offence: maps[i]['offence'],
-        defence: maps[i]['defence'],
-        level: maps[i]['level'],
-        villageId: maps[i]['village_id'],
-        image: maps[i]['image'],
-        speed: maps[i]['speed'],
-        amount: maps[i]['amount'],
-      );
+      var unitMap = maps[i];
+      // Extract 'row'
+      var row = unitMap['row_num'];
+
+      // Create a new map from unitMap that doesn't include 'row'
+      var unitMapWithoutRow = Map<String, dynamic>.from(unitMap)..remove('row_num');
+
+      // Create a Unit object using fromMap
+      var unit = Unit.fromMap(unitMapWithoutRow);
+      // Assuming Unit class has a setter method for 'row' or it's a publicly accessible field
+      unit.row = row;
+
+      return unit;
     });
   }
+
 
   Future<Tile?> getTileByRowAndColumn(int row, int column) async {
     final db = await DatabaseHelper.instance.database;
@@ -450,12 +479,22 @@ class Village {
     WHERE owned = 0;
     ''');
 
-    print("test");
-    print(maps);
     List<Village> villages = maps.map((map) => Village.fromMap(map)).toList();
 
-    print('printing villages');
-    print(villages);
+    return villages;
+  }
+
+  static Future<List<Village>> getPlayerVillages() async {
+    final db = await DatabaseHelper.instance.database;
+
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+    SELECT 
+      *
+    FROM villages
+    WHERE owned = 1;
+    ''');
+
+    List<Village> villages = maps.map((map) => Village.fromMap(map)).toList();
 
     return villages;
   }
@@ -734,7 +773,5 @@ class Village {
 
     return {};
   }
-
-
 
 }

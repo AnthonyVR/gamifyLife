@@ -13,6 +13,9 @@ class HabitDao {
 
     // Check if the table exists
     List<Map> tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name=?", [DatabaseHelper.habitsTable]);
+    print('dates from error:');
+    print(tables);
+
     if (tables != null && tables.length > 0) {
       var res = await db.query(DatabaseHelper.habitsTable);
       List<Habit> list = res.isNotEmpty ? res.map((c) => Habit.fromMap(c)).toList().cast<Habit>() : [];

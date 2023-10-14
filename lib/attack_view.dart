@@ -106,10 +106,10 @@ class _AttackViewState extends State<AttackView> {
                 Center(child: Text(formatTimestamp(attack.arrivedAt.toIso8601String()))),
                 SizedBox(height: 80),
                 Center(child: Text("Attacker: ${attack.sourceVillageName ?? 'Unknown'}")),
-                Center(child: generateUnitsTable(attack.sourceUnitsBefore, attack.sourceUnitsAfter, 1)),
+                Center(child: generateUnitsTable(attack.sourceUnitsBefore, attack.sourceUnitsAfter, 1, attack.owned)),
                 SizedBox(height: 30),
                 Center(child: Text("Defender: ${attack.destinationVillageName ?? 'Unknown'}")),
-                Center(child: generateUnitsTable(attack.destinationUnitsBefore, attack.destinationUnitsAfter, attack.outcome)),
+                Center(child: generateUnitsTable(attack.destinationUnitsBefore, attack.destinationUnitsAfter, attack.outcome, attack.owned)),
                 SizedBox(height: 30.0),  // You can adjust the spacing as needed
                 Center(child: Text("Loot:")),
                 SizedBox(height: 5.0),  // You can adjust the spacing as needed
@@ -179,7 +179,7 @@ class _AttackViewState extends State<AttackView> {
 
 
 
-  Widget generateUnitsTable(String unitsBeforeStr, String unitsAfterStr, int attackOutcome) {
+  Widget generateUnitsTable(String unitsBeforeStr, String unitsAfterStr, int attackOutcome, int attackOwned) {
     List<Map<String, dynamic>> unitsBefore = decodeUnits(unitsBeforeStr);
     List<Map<String, dynamic>> unitsAfter = decodeUnits(unitsAfterStr);
 
@@ -193,7 +193,7 @@ class _AttackViewState extends State<AttackView> {
     List<DataRow> rows = [];
 
     // Check if attackOutcome == 1
-    if (attackOutcome == 1) {
+    if (attackOutcome == 1 || attackOwned == 0) {
       rows = [
         DataRow(cells: unitsBefore.map((unitMap) {
           return DataCell(Text("  ${unitMap['amount'].toString()}"));

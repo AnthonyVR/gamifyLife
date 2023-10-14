@@ -46,11 +46,18 @@ class _EventViewState extends State<EventView> {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 4.0),
                   child: ListTile(
-                    tileColor: event.eventType == 'village_spawn' ? Colors.blue : Colors.red,
+                    tileColor: _getColorForEventType(event.eventType),
                     title: Text(formatTimestamp(event.timestamp.toIso8601String())),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Row(
+                          children: [
+                            Text(event.info.toString()),
+                            Spacer(), // This will take up all available space between the text widgets
+                            Text(event.eventType),
+                          ],
+                        )
                       ],
                     ),
                   ),
@@ -64,5 +71,24 @@ class _EventViewState extends State<EventView> {
         },
       ),
     );
+  }
+
+  Color _getColorForEventType(String eventType) {
+    switch(eventType) {
+      case 'village_spawn':
+        return Colors.blue;
+      case 'attack': // replace with your actual event type
+        return Colors.red; // replace with the desired color
+      case 'unit_trained': // replace with your actual event type
+        return Colors.yellow; // replace with the desired color
+      case 'unit_added': // replace with your actual event type
+        return Colors.orange; // replace with the desired color
+      case 'building_level_up': // replace with your actual event type
+        return Colors.grey; // replace with the desired color
+
+    // add as many cases as you need
+      default:
+        return Colors.white; // default color if the event type doesn't match any case
+    }
   }
 }

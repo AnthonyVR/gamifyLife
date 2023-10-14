@@ -378,9 +378,9 @@ class _UnitsPopupState extends State<UnitsPopup> {
         .where((detail) => detail['amount'] as int > 0)
         .toList();
 
-    // Call the attackVillage function with the list of selected units and their amounts
-    Attack.attackVillage(widget.selectedVillageId, widget.destinationVillageId, attackDetails);
-    //attackVillage(attackDetails);
+    // Call the attackEnemyVillage function with the list of selected units and their amounts
+    Attack.attackEnemyVillage(widget.selectedVillageId, widget.destinationVillageId, attackDetails);
+    //attackEnemyVillage(attackDetails);
 
     print('Attack details: $attackDetails');
   }

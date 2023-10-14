@@ -208,20 +208,24 @@ class DatabaseHelper {
 
     // INSERT FIRST VILLAGES
     await Village.insertVillage(db, Village(id: 1, name: 'Your village', owned: 1, row: 15, column: 15, coins: 30));
-    await Village.insertVillage(db, Village(id: 2, name: 'Enemy village', owned: 0, row: 11, column: 14, coins: 100));
-    await Village.insertVillage(db, Village(id: 3, name: 'Your village 2', owned: 1, row: 17, column: 17, coins: 40));
+    await Village.insertVillage(db, Village(id: 2, name: 'Your village 2', owned: 1, row: 17, column: 17, coins: 40));
+    await Village.insertVillage(db, Village(id: 3, name: 'Enemy village', owned: 0, row: 11, column: 14, coins: 100));
+    //await Village.insertVillage(db, Village(id: 4, name: 'Enemy village 2', owned: 0, row: 18, column: 13, coins: 100));
+
 
     // CREATE INITIAL VILLAGE WITH ALL OF ITS INITIAL TILES, UNITS, AND BUILDINGS AND OBJECTS
     await Village.createInitialVillage(db, 1);
     await Village.createInitialVillage(db, 2);
     await Village.createInitialVillage(db, 3);
+    //await Village.createInitialVillage(db, 4);
+
 
     // FOR TESTING PURPOSE: add some units to own and enemy village
-    await Unit(villageId: 2, name: "spearman", image: "assets/spearman.png", level: 1, offence: 10, defence: 10, amount: 5, cost: 50, speed: 50).insertToDb();
-    await Unit(villageId: 2, name: "wizard", image: "assets/wizard.png", level: 1, offence: 20, defence: 5, amount: 3, cost: 80, speed: 80).insertToDb();
-
-    await Unit(villageId: 1, name: "spearman", image: "assets/spearman.png", level: 1, offence: 10, defence: 10, amount: 8, cost: 50, speed: 50).insertToDb();
-    await Unit(villageId: 1, name: "wizard", image: "assets/wizard.png", level: 1, offence: 20, defence: 5, amount: 5, cost: 80, speed: 80).insertToDb();
+    // await Unit(villageId: 2, name: "spearman", image: "assets/spearman.png", level: 1, offence: 10, defence: 10, amount: 5, cost: 50, speed: 50).insertToDb();
+    // await Unit(villageId: 2, name: "wizard", image: "assets/wizard.png", level: 1, offence: 20, defence: 5, amount: 3, cost: 80, speed: 80).insertToDb();
+    //
+    // await Unit(villageId: 1, name: "spearman", image: "assets/spearman.png", level: 1, offence: 10, defence: 10, amount: 8, cost: 50, speed: 50).insertToDb();
+    // await Unit(villageId: 1, name: "wizard", image: "assets/wizard.png", level: 1, offence: 20, defence: 5, amount: 5, cost: 80, speed: 80).insertToDb();
 
 
   }
