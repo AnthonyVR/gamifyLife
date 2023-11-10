@@ -124,6 +124,20 @@ class Unit {
     );
   }
 
+  Future<int> updateAmount(int amountToUpdate) async {
+    final db = await DatabaseHelper.instance.database;
+
+    amount = amountToUpdate;
+
+    // Update the unit in the database
+    return await db.update(
+      'units',
+      toMap(),
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   Future<int> removeFromAmount() async {
     final db = await DatabaseHelper.instance.database;
 
@@ -139,6 +153,20 @@ class Unit {
     );
   }
 
+  Future<int> removeMultipleFromAmount(int amountToRemove) async {
+    final db = await DatabaseHelper.instance.database;
+
+    // Increase its amount by 1
+    amount -= amountToRemove;
+
+    // Update the unit in the database
+    return await db.update(
+      'units',
+      toMap(),
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
 
   static Future<Unit> getUnitById(int id) async {
     final db = await DatabaseHelper.instance.database;

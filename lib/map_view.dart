@@ -106,7 +106,7 @@ class _MapViewState extends State<MapView> {
                         return Center(child: Text('Error loading tiles!'));
                       }
 
-                      WidgetsBinding.instance!.addPostFrameCallback((_) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
                         // Center the map vertically
                         _verticalController.jumpTo(
                             (_verticalController.position.maxScrollExtent / 1.5) - (MediaQuery.of(context).size.height / 6)
@@ -336,7 +336,7 @@ class _MapViewState extends State<MapView> {
 
   Future<List<Unit>?> _fetchUnits(int villageId) async {
     Village? village = await Village.getVillageById(villageId);
-    return village?.getUnits();
+    return village.getUnits();
   }
 
 }
@@ -378,8 +378,9 @@ class _UnitsPopupState extends State<UnitsPopup> {
         .where((detail) => detail['amount'] as int > 0)
         .toList();
 
-    // Call the attackEnemyVillage function with the list of selected units and their amounts
-    Attack.attackEnemyVillage(widget.selectedVillageId, widget.destinationVillageId, attackDetails);
+    // Call the createAttack function with the list of selected units and their amounts
+    //Attack.attackEnemyVillage(widget.selectedVillageId, widget.destinationVillageId, attackDetails);
+    Attack.createAttack(widget.selectedVillageId, widget.destinationVillageId, attackDetails);
     //attackEnemyVillage(attackDetails);
 
     print('Attack details: $attackDetails');
@@ -400,7 +401,7 @@ class _UnitsPopupState extends State<UnitsPopup> {
                   SizedBox(width: 15),
                   DropdownButton<int>(
                     value: selectedUnitsMap[unit],
-                    items: List.generate(unit.amount! + 1, (index) {
+                    items: List.generate(unit.amount + 1, (index) {
                       return DropdownMenuItem<int>(
                         value: index,
                         child: Text('$index'),

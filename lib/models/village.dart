@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:habit/models/building.dart';
 import 'package:habit/models/tile.dart';
 import 'package:habit/models/unit.dart';
@@ -164,11 +166,26 @@ class Village {
 
 
     // Add units entries with reference to this village to the units table
-    Unit(villageId: villageId, name: "spearman", image: "assets/spearman.png", level: 1, offence: 10, defence: 10, amount: 5, cost: 50, speed: 50).insertToDb();
-    Unit(villageId: villageId, name: "wizard", image: "assets/wizard.png", level: 1, offence: 20, defence: 5, amount: 5, cost: 80, speed: 80).insertToDb();
-    Unit(villageId: villageId, name: "catapult", image: "assets/catapult.png", level: 1, offence: 20, defence: 5, amount: 0, cost: 300, speed: 150).insertToDb();
-    Unit(villageId: villageId, name: "king", image: "assets/king.png", level: 1, offence: 20, defence: 5, amount: 0, cost: 1000, speed: 100).insertToDb();
+    Unit(villageId: villageId, name: "spearman", image: "assets/spearman.png", level: 1, offence: 10, defence: 10, amount: 5, cost: 50, speed: 1).insertToDb();
+    Unit(villageId: villageId, name: "wizard", image: "assets/wizard.png", level: 1, offence: 20, defence: 5, amount: 4, cost: 80, speed: 1).insertToDb();
+    Unit(villageId: villageId, name: "catapult", image: "assets/catapult.png", level: 1, offence: 20, defence: 5, amount: 0, cost: 300, speed: 1).insertToDb();
+    Unit(villageId: villageId, name: "king", image: "assets/king.png", level: 1, offence: 20, defence: 5, amount: 1, cost: 1000, speed: 1).insertToDb();
 
+    // Add units to tiles for defending testing
+    Tile(villageId: villageId, rowNum: 16, columnNum: 4, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
+    Tile(villageId: villageId, rowNum: 16, columnNum: 5, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
+    Tile(villageId: villageId, rowNum: 16, columnNum: 6, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
+    Tile(villageId: villageId, rowNum: 16, columnNum: 3, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
+    Tile(villageId: villageId, rowNum: 16, columnNum: 2, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
+    Tile(villageId: villageId, rowNum: 16, columnNum: 1, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
+    Tile(villageId: villageId, rowNum: 16, columnNum: 0, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
+    Tile(villageId: villageId, rowNum: 16, columnNum: 7, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
+    Tile(villageId: villageId, rowNum: 15, columnNum: 3, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
+    Tile(villageId: villageId, rowNum: 15, columnNum: 4, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
+    Tile(villageId: villageId, rowNum: 15, columnNum: 5, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
+    Tile(villageId: villageId, rowNum: 15, columnNum: 6, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
+    Tile(villageId: villageId, rowNum: 15, columnNum: 7, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
+    Tile(villageId: villageId, rowNum: 15, columnNum: 8, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
 
   }
 
@@ -185,6 +202,28 @@ class Village {
 
     // level it up
     return await unit.levelUp();
+
+  }
+
+  Future<void> changeOwner(int owned) async {
+    final db = await DatabaseHelper.instance.database;
+
+    await db.rawUpdate('''
+      UPDATE villages 
+      SET owned = ? 
+      WHERE id = ?
+    ''', [owned, id]);
+
+  }
+
+  Future<void> changeName(String name) async {
+    final db = await DatabaseHelper.instance.database;
+
+    await db.rawUpdate('''
+      UPDATE villages 
+      SET name = ? 
+      WHERE id = ?
+    ''', [name, id]);
 
   }
 
@@ -386,6 +425,99 @@ class Village {
     return maps.map((map) => Unit.fromMap(map)).toList();
   }
 
+  Future<List<Unit>> getAvailableUnits() async {
+    final db = await DatabaseHelper.instance.database;
+
+    // Query the units table for the units associated with the given villageId
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+    SELECT * 
+    FROM units
+    WHERE village_id = ?
+    AND amount > 0
+  ''', [id]);
+
+    if (maps.isEmpty) {
+      return [];
+      //throw Exception('No units found for village with ID $id');
+    }
+
+    // Use fromMap to create a list of Unit objects
+    return maps.map((map) => Unit.fromMap(map)).toList();
+  }
+
+  // Units that are sent out for attack (either by player or enemy) are removed from the amount in the units table from the moment the attack starts.
+  // This function looks at the attacks table and calculates whether there are units that should already have returned to the village and can again be added to the amount.
+  static Future<void> updateUnitsInTransit() async {
+    final db = await DatabaseHelper.instance.database;
+
+    // Step 1: Fetch the relevant attacks
+    final List<Map<String, dynamic>> attackMaps = await db.rawQuery('''
+    SELECT * 
+    FROM attacks
+    WHERE completed = 1 AND returned_at <= ?
+  ''', [DateTime.now().toIso8601String()]);  // assuming `returned_at` is stored as a string in ISO format
+
+    for (var attack in attackMaps) {
+      // Deserialize the source_units_after column (assuming it's stored as a JSON string)
+      List<Map<String, dynamic>> sourceUnitsAfter = (json.decode(attack['source_units_after']) as List).cast<Map<String, dynamic>>();
+
+      print("printing sourceUnitsAfter");
+      print(sourceUnitsAfter);
+      // Step 2 and 3: For each unit, update the amount in the units table
+      for (var unitData in sourceUnitsAfter) {
+        int unitId = unitData['unit']['id'];
+        int amountToAdd = unitData['amount'];
+
+        await db.rawUpdate('''
+        UPDATE units
+        SET amount = amount + ?
+        WHERE id = ?
+      ''', [amountToAdd, unitId]);
+      }
+
+      // update the attack as "completed 2"
+      await db.update('attacks', {'completed': 2}, where: 'id = ?', whereArgs: [attack['id']]);
+    }
+  }
+
+  // similar to the above updateUnitsInTransit() but updates the units that are defending the village from the moment the attack has arrived in the defending village.
+  static Future<void> updateUnitsDefending() async {
+    final db = await DatabaseHelper.instance.database;
+
+    // Step 1: Fetch the relevant attacks
+    final List<Map<String, dynamic>> attackMaps = await db.rawQuery('''
+    SELECT * 
+    FROM attacks
+    WHERE completed = 0 AND arrived_at <= ? AND owned = 1
+  ''', [DateTime.now().toIso8601String()]);  // assuming `returned_at` is stored as a string in ISO format
+
+    for (var attack in attackMaps) {
+      // Deserialize the source_units_after column (assuming it's stored as a JSON string)
+      List<Map<String, dynamic>> destinationUnitsAfter = (json.decode(attack['destination_units_after']) as List).cast<Map<String, dynamic>>();
+
+      print("printing sourceUnitsAfter");
+      print(destinationUnitsAfter);
+      // Step 2 and 3: For each unit, update the amount in the units table
+      for (var unitData in destinationUnitsAfter) {
+        int unitId = unitData['unit']['id'];
+        int amountToUpdate = unitData['amount'];
+
+        print('updating the amount in this village to');
+        print(amountToUpdate);
+
+        await db.rawUpdate('''
+        UPDATE units
+        SET amount = ?
+        WHERE id = ?
+      ''', [amountToUpdate, unitId]);
+      }
+
+      // update the attack as "completed 1"
+      await db.update('attacks', {'completed': 1}, where: 'id = ?', whereArgs: [attack['id']]);
+    }
+  }
+
+
 
   // Gets the units that are placed in the village with their row numbers
   Future<List<Unit>> getDefendingUnits() async {
@@ -499,7 +631,6 @@ class Village {
     return villages;
   }
 
-
   static Future<Map<int, Map<int, Map<String, dynamic>>>> fetchVillages() async {
     List<Map<String, dynamic>> tilesList = await getVillages();
 
@@ -607,6 +738,7 @@ class Village {
       );
     }
   }
+
 
 
   // EVENTS
@@ -773,5 +905,6 @@ class Village {
 
     return {};
   }
+
 
 }

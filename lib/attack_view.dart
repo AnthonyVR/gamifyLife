@@ -6,6 +6,7 @@ import 'package:habit/services/database_helper.dart';
 import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
 import 'models/attack.dart';
+import 'models/unit.dart';
 
 class AttackView extends StatefulWidget {
   @override
@@ -13,78 +14,168 @@ class AttackView extends StatefulWidget {
 }
 
 class _AttackViewState extends State<AttackView> {
-  late Future<List<Attack>> attacks;
+  List<Attack> outgoingAttacksInTransit = [];
+  List<Attack> outgoingAttacksPast = [];
+
+  List<Attack> incomingAttacksInTransit = [];
+  List<Attack> incomingAttacksPast = [];
+
 
   @override
   void initState() {
     super.initState();
-    attacks = Attack.getAllAttacks();
+    processAttacks();
   }
+
+  Future<void> processAttacks() async {
+    List<Attack> allAttacks = await Attack.getAllAttacks();
+
+
+    DateTime now = DateTime.now();
+
+    // split by outgoing and incoming
+    List<Attack> outgoingAttacks = allAttacks.where((attack) => attack.owned == 1).toList();
+    List<Attack> incomingAttacks = allAttacks.where((attack) => attack.owned == 0).toList();
+
+
+    // outgoing attacks should show 'in transit' when they're on their way to destination or returning
+    List<Attack> outgoingAttacksInTransit = outgoingAttacks.where((attack) =>
+    attack.completed < 2
+    ).toList();
+    List<Attack> outgoingAttacksPast = outgoingAttacks.where((attack) =>
+    attack.completed == 2
+    ).toList();
+
+    // incoming attacks should only show 'in transit' when they're on their way to destination
+    List<Attack> incomingAttacksInTransit = incomingAttacks.where((attack) =>
+    attack.completed == 0
+    ).toList();
+    List<Attack> incomingAttacksPast = incomingAttacks.where((attack) =>
+    attack.completed > 0
+    ).toList();
+
+    // Update the state with the filtered lists
+    setState(() {
+      this.outgoingAttacksInTransit = outgoingAttacksInTransit;
+      this.outgoingAttacksPast = outgoingAttacksPast;
+      this.incomingAttacksInTransit = incomingAttacksInTransit;
+      this.incomingAttacksPast = incomingAttacksPast;
+    });
+  }
+
 
 
   @override
   Widget build(BuildContext context) {
-    String formatTimestamp(String timestamp) {
-      DateTime dateTime = DateTime.parse(timestamp);
-      return DateFormat('d MMMM y, HH:mm:ss').format(dateTime);  // Adjust format as needed
-    }
-    return Scaffold(
-      appBar: AppBar(title: Text("Attacks"), backgroundColor: Colors.grey,),
-      body: FutureBuilder<List<Attack>>(
-        future: attacks,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
-            if (snapshot.hasError) {
-              return Center(child: Text("Error loading attacks"));
-            }
-            final attackList = snapshot.data!;
-            return ListView.builder(
-              itemCount: attackList.length,
-              itemBuilder: (context, index) {
-                final attack = attackList[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 4.0),
-                  child: Card(
-                    elevation: 4.0, // Provides the shadow effect
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0), // Rounded corners for ListTile
-                    ),
-                    child: ListTile(
-                      tileColor: attack.outcome == 0 ? Colors.red[100] : Colors.green[100],
-                      title: Text(formatTimestamp(attack.arrivedAt.toIso8601String())),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("From: ${attack.sourceVillageName}"),
-                          Text("To: ${attack.destinationVillageName}")
-                        ],
-                      ),
-                      trailing: Image.asset(
-                        attack.owned == 1 ? 'assets/attack.png' : 'assets/defense.png',
-                        width: 24.0,  // Adjust width as needed
-                        height: 24.0, // Adjust height as needed
-                      ),
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => _attackDetailsDialog(attack),
-                        );
-                      },
-                    ),
-                  ),
-                );
-
-
-              },
-            );
-
-          } else {
-            return CircularProgressIndicator();
-          }
-        },
+    return DefaultTabController(
+      length: 2,  // Number of tabs
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text("Attacks"),
+          backgroundColor: Colors.grey,
+          bottom: TabBar(
+            tabs: [
+              Tab(text: 'Incoming'),
+              Tab(text: 'Outgoing'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            // Incoming Tab
+            Column(
+              children: [
+                SizedBox(height: 10,),
+                Text("Incoming"),
+                Expanded(
+                  child: buildAttackList(incomingAttacksInTransit),
+                ),
+                Divider(),
+                Text("History"),
+                Expanded(
+                  child: buildAttackList(incomingAttacksPast),
+                ),
+              ],
+            ),
+            // Outgoing Tab
+            Column(
+              children: [
+                SizedBox(height: 10,),
+                Text("In transit"),
+                Expanded(
+                  child: buildAttackList(outgoingAttacksInTransit),
+                ),
+                Divider(),
+                Text("History"),
+                Expanded(
+                  child: buildAttackList(outgoingAttacksPast),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
+
+
+  Widget buildAttackList(List<Attack> attacks) {
+    return ListView.builder(
+      itemCount: attacks.length,
+      itemBuilder: (context, index) {
+        final attack = attacks[index];
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 4.0),
+          child: Card(
+            elevation: 4.0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            child: ListTile(
+              tileColor: attack.arrivedAt.isAfter(DateTime.now())
+                  ? Colors.white
+                  : (attack.outcome == 0
+                  ? Colors.red[100]
+                  : Colors.green[100]),
+              title: attack.arrivedAt.isAfter(DateTime.now())
+                  ? (attack.returnedAt == null
+                  ? Text(" Arrival: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.arrivedAt)}")
+                  : Text(" Arrival: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.arrivedAt)} \n(Return: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.returnedAt!)} )"))
+                  : (attack.returnedAt == null
+                  ? Text(" Return: Not available")
+                  : Text(" Return: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.returnedAt!)}")),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(" From: ${attack.sourceVillageName}"),
+                  Text(" To: ${attack.destinationVillageName}")
+                ],
+              ),
+              trailing: Image.asset(
+                attack.owned == 1 ? 'assets/attack.png' : 'assets/defense.png',
+                width: 24.0,
+                height: 24.0,
+              ),
+              onTap: () {
+                if (attack.completed > 0) {
+                  showDialog(
+                    context: context,
+                    builder: (context) => _attackDetailsDialog(attack),
+                  );
+                } else if(attack.owned == 1) {
+                  showDialog(
+                    context: context,
+                    builder: (context) => _showOutgoingAttackDetails(attack),
+                  );
+                }
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
 
   Widget _attackDetailsDialog(Attack attack) {
     String formatTimestamp(String timestamp) {
@@ -106,10 +197,32 @@ class _AttackViewState extends State<AttackView> {
                 Center(child: Text(formatTimestamp(attack.arrivedAt.toIso8601String()))),
                 SizedBox(height: 80),
                 Center(child: Text("Attacker: ${attack.sourceVillageName ?? 'Unknown'}")),
-                Center(child: generateUnitsTable(attack.sourceUnitsBefore, attack.sourceUnitsAfter, 1, attack.owned)),
+                FutureBuilder<Widget>(
+                  future: generateUnitsTable(attack.sourceUnitsBefore, attack.sourceUnitsAfter!, 1, attack.owned),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return CircularProgressIndicator();  // return a loader while waiting
+                    } else if (snapshot.hasError) {
+                      return Text('Error: ${snapshot.error}');
+                    } else {
+                      return Center(child: snapshot.data!);  // return the actual widget once the future is complete
+                    }
+                  },
+                ),
                 SizedBox(height: 30),
                 Center(child: Text("Defender: ${attack.destinationVillageName ?? 'Unknown'}")),
-                Center(child: generateUnitsTable(attack.destinationUnitsBefore, attack.destinationUnitsAfter, attack.outcome, attack.owned)),
+                FutureBuilder<Widget>(
+                  future: generateUnitsTable(attack.destinationUnitsBefore!, attack.destinationUnitsAfter!, 1, attack.owned),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return CircularProgressIndicator();  // return a loader while waiting
+                    } else if (snapshot.hasError) {
+                      return Text('Error: ${snapshot.error}');
+                    } else {
+                      return Center(child: snapshot.data!);  // return the actual widget once the future is complete
+                    }
+                  },
+                ),
                 SizedBox(height: 30.0),  // You can adjust the spacing as needed
                 Center(child: Text("Loot:")),
                 SizedBox(height: 5.0),  // You can adjust the spacing as needed
@@ -145,7 +258,7 @@ class _AttackViewState extends State<AttackView> {
                   Text(
                     "${attack.luck}",
                     style: TextStyle(
-                        color: _getLuckColor(attack.luck),
+                        color: _getLuckColor(attack.luck!),
                         fontFamily: 'serif',
                         fontWeight: FontWeight.w400,
                         fontSize: 16,
@@ -165,6 +278,51 @@ class _AttackViewState extends State<AttackView> {
     );
   }
 
+  Widget _showOutgoingAttackDetails(Attack attack) {
+    String formatTimestamp(String timestamp) {
+      DateTime dateTime = DateTime.parse(timestamp);
+      return DateFormat('d MMMM y, HH:mm:ss').format(dateTime);  // Adjust format as needed
+    }
+
+
+    return Dialog(
+      insetPadding: EdgeInsets.all(10.0), // make dialog almost full screen
+      child: Container(
+        decoration: BoxDecoration(
+          color: attack.outcome == 0 ? Colors.red[100] : Colors.green[100],
+        ),
+        child: Stack(
+          children: [
+            ListView(
+              padding: EdgeInsets.all(8.0),
+              children: [
+                Center(child: Text(formatTimestamp(attack.arrivedAt.toIso8601String()))),
+                SizedBox(height: 80),
+                Center(child: Text("Attacker: ${attack.sourceVillageName ?? 'Unknown'}")),
+                FutureBuilder<Widget>(
+                  future: generateUnitsTable(attack.sourceUnitsBefore, "", 1, attack.owned),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return CircularProgressIndicator();  // return a loader while waiting
+                    } else if (snapshot.hasError) {
+                      return Text('Error: ${snapshot.error}');
+                    } else {
+                      return Center(child: snapshot.data!);  // return the actual widget once the future is complete
+                    }
+                  },
+                ),
+              ],
+            ),
+            Positioned(
+              top: 10.0,
+              left: 10.0,
+              child: Image.asset(attack.owned == 1 ? 'assets/attack.png' : 'assets/defense.png', width: 40.0, height: 40.0,),  // Adjust width and height as needed
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Color _getLuckColor(int luck) {
     const double minLuck = -15.0;
@@ -178,22 +336,34 @@ class _AttackViewState extends State<AttackView> {
   }
 
 
+  Future<Widget> generateUnitsTable(String unitsBeforeStr, String unitsAfterStr, int attackOutcome, int attackOwned) async {
+    List<Map<String, dynamic>> unitsBefore = await decodeUnits(unitsBeforeStr);
+    List<Map<String, dynamic>> unitsAfter = await decodeUnits(unitsAfterStr);
 
-  Widget generateUnitsTable(String unitsBeforeStr, String unitsAfterStr, int attackOutcome, int attackOwned) {
-    List<Map<String, dynamic>> unitsBefore = decodeUnits(unitsBeforeStr);
-    List<Map<String, dynamic>> unitsAfter = decodeUnits(unitsAfterStr);
-
+    if (unitsBefore.isEmpty) {
+      return Center(child: Text('\n- No defending units - ', style: TextStyle(fontStyle: FontStyle.italic),));
+    }
     // Create columns from the first list, assuming it will always have all units.
     List<DataColumn> columns = unitsBefore.map((unitMap) {
       return DataColumn(
-        label: Image.asset(unitMap['unit']['image'], width: 30, height: 34), // adjust width and height as needed
+        label: Image.asset(unitMap['unit'].image, width: 30, height: 34), // adjust width and height as needed
       );
     }).toList();
 
     List<DataRow> rows = [];
 
+    // if it's an outgoing attack show only the attacking units
+    if (unitsAfter.isEmpty) {
+      rows = [
+        DataRow(cells: unitsBefore.map((unitMap) {
+          return DataCell(Text("  ${unitMap['amount'].toString()}"));
+        }).toList()),
+      ];
+
+    }
+
     // Check if attackOutcome == 1
-    if (attackOutcome == 1 || attackOwned == 0) {
+    else if (attackOutcome == 1 || attackOwned == 0) {
       rows = [
         DataRow(cells: unitsBefore.map((unitMap) {
           return DataCell(Text("  ${unitMap['amount'].toString()}"));
@@ -226,12 +396,22 @@ class _AttackViewState extends State<AttackView> {
   }
 
 
-
-  List<Map<String, dynamic>> decodeUnits(String unitsStr) {
+  Future<List<Map<String, dynamic>>> decodeUnits(String unitsStr) async {
+    if(unitsStr.isEmpty){
+      return [];
+    }
     final List decodedList = jsonDecode(unitsStr);
-    print("decoded list:");
-    print(decodedList);
-    return List<Map<String, dynamic>>.from(decodedList);
+
+    List<Map<String, dynamic>> sourceUnitsBeforeDecoded = [];
+    for (var unitMap in decodedList) {
+      int unitId = unitMap['unit_id'];
+      var unit = await Unit.getUnitById(unitId);
+      sourceUnitsBeforeDecoded.add({
+        'unit': unit,
+        'amount': unitMap['amount'],
+      });
+    }
+    return sourceUnitsBeforeDecoded;
   }
 
 

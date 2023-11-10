@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:habit/villageAppBar.dart';
+import 'models/settings.dart';
 import 'models/village.dart';
 
 class TownhallView extends StatefulWidget {
@@ -14,8 +15,8 @@ class TownhallView extends StatefulWidget {
 }
 
 class _TownhallViewState extends State<TownhallView> {
-  final double initialCost = 30;
-  final double difficultyMultiplier = 1.5;
+
+  Settings? _settings;
   Village? village;
 
   int currentTownHallLevel = 0; // This will be fetched from the database.
@@ -24,6 +25,7 @@ class _TownhallViewState extends State<TownhallView> {
   void initState() {
     super.initState();
     fetchVillageData();
+    _loadSettings();
   }
 
   @override
@@ -96,8 +98,18 @@ class _TownhallViewState extends State<TownhallView> {
     );
   }
 
+  void _loadSettings() async {
+    _settings = await Settings.getSettingsFromDB();
+    setState(() {});
+  }
+
   int getCost(int level) {
-    return (initialCost * pow(difficultyMultiplier, level - 1)).round();
+
+    const double initialCost = 10;
+    final double? costMultiplier = _settings?.costMultiplier;
+
+    return (initialCost * pow(costMultiplier!, level - 1)).round();
+
   }
 
   Widget _styledText(String text) {

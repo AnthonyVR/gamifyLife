@@ -15,6 +15,7 @@ import '../dao/village_dao.dart';
 
 // Import classes
 import '../models/player.dart';
+import '../models/settings.dart';
 import '../models/tile.dart';
 import '../models/building.dart';
 import '../models/unit.dart';
@@ -195,6 +196,7 @@ class DatabaseHelper {
 
     // CREATE TABLES
     await Player.createTable(db);
+    await Settings.createTable(db);
     await Village.createTable(db);
     await Tile.createTable(db);
     await Building.createTable(db);
@@ -203,19 +205,23 @@ class DatabaseHelper {
     await Attack.createTable(db);
     await Event.createTable(db);
 
+    // CREATE INITIAL SETTINGS
+    Settings settings = Settings(id: 1, villageSpawnFrequency: 60, buildingLevelUpFrequency: 20, unitCreationFrequency: 20, unitTrainingFrequency: 20, attackFrequency: 20, costMultiplier: 1.5);
+    settings.insertToDb();
+
     // INSERT INITIAL PLAYER
     await Player.insertPlayer(db, Player(id: 1, level: 1, score: 0, rewardFactor: 1));
 
     // INSERT FIRST VILLAGES
     await Village.insertVillage(db, Village(id: 1, name: 'Your village', owned: 1, row: 15, column: 15, coins: 30));
-    await Village.insertVillage(db, Village(id: 2, name: 'Your village 2', owned: 1, row: 17, column: 17, coins: 40));
-    await Village.insertVillage(db, Village(id: 3, name: 'Enemy village', owned: 0, row: 11, column: 14, coins: 100));
+    //await Village.insertVillage(db, Village(id: 2, name: 'Your village 2', owned: 1, row: 17, column: 17, coins: 40));
+    await Village.insertVillage(db, Village(id: 3, name: 'Enemy village 1', owned: 0, row: 15, column: 16, coins: 100));
     //await Village.insertVillage(db, Village(id: 4, name: 'Enemy village 2', owned: 0, row: 18, column: 13, coins: 100));
 
 
     // CREATE INITIAL VILLAGE WITH ALL OF ITS INITIAL TILES, UNITS, AND BUILDINGS AND OBJECTS
     await Village.createInitialVillage(db, 1);
-    await Village.createInitialVillage(db, 2);
+    //await Village.createInitialVillage(db, 2);
     await Village.createInitialVillage(db, 3);
     //await Village.createInitialVillage(db, 4);
 

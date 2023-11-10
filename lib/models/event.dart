@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:habit/models/settings.dart';
 import 'package:habit/models/unit.dart';
 import 'package:habit/models/village.dart';
 import 'package:sqflite/sqflite.dart';
@@ -89,6 +90,7 @@ class Event {
   }
 
   int calculateNumberOfEvents(int timeSinceGameOpened, int averageFrequency) {
+
     // Define constants
     final lambda = timeSinceGameOpened / averageFrequency; // Events per time frame
 
@@ -107,6 +109,13 @@ class Event {
       cumulativeProbability += pow(lambda, k) * exp(-lambda) / _factorial(k);
     }
 
+    // print("time since game openen: $timeSinceGameOpened minutes");
+    // print("average frequency: $averageFrequency");
+    // print("odds of event occuring (lambda): $lambda");
+    // print("random value: $randomValue");
+    // print("cumulative probability: $cumulativeProbability");
+    // print("numer of events: $k");
+
     // k is the number of events that occurred
     return k;
   }
@@ -120,11 +129,13 @@ class Event {
 
   Future<int> calculateEvents() async {
 
-    int villageSpawnFrequency = 20; // hours
-    int buildingLevelUpFrequency = 20;
-    int unitCreationFrequency = 20;
-    int unitTrainingFrequency = 20;
-    int attackFrequency = 20;
+    Settings settings = await Settings.getSettingsFromDB();
+
+    int? villageSpawnFrequency = settings.villageSpawnFrequency; //3 * 24 * 60; // minutes
+    int buildingLevelUpFrequency = settings.buildingLevelUpFrequency;
+    int unitCreationFrequency = settings.unitCreationFrequency;
+    int unitTrainingFrequency = settings.unitTrainingFrequency;
+    int attackFrequency = settings.attackFrequency;
 
     int eventsOccurred = 0;
 
@@ -132,7 +143,6 @@ class Event {
     Database db = await DatabaseHelper.instance.database;
 
     DateTime lastGameOpened = await getLastGameOpened();
-    print(lastGameOpened);
 
     DateTime currentTimeStamp = DateTime.now();
 
@@ -201,21 +211,26 @@ class Event {
 
         ////
 
-        List<Unit> enemySourceUnitsList = await village.getUnits();
+        List<Unit> enemySourceUnitsList = await village.getAvailableUnits();
 
-        List<Map<String, dynamic>> enemySourceUnits = enemySourceUnitsList.map((unit) {
-          return {
-            'unit': unit,
-            'amount': unit.amount,
-          };
-        }).toList();
+        if(enemySourceUnitsList.isNotEmpty){
 
-        // REMOVE THIS LATER !!!
-        playerRandomVillageId = 1;
+          List<Map<String, dynamic>> enemySourceUnits = enemySourceUnitsList.map((unit) {
+            return {
+              'unit': unit,
+              'amount': unit.amount,
+            };
+          }).toList();
 
-        Map attackInfo = await Attack.attackPlayerVillage(village.id!, playerRandomVillageId, DateTime.now(), enemySourceUnits);
-        Event(timestamp: currentTimeStamp, eventType: 'attack', info: {}).insertToDb();
-        eventsOccurred++;
+          // REMOVE THIS LATER !!!
+          //playerRandomVillageId = 1;
+
+          await Attack.createAttack(village.id!, playerRandomVillageId, enemySourceUnits);
+          Event(timestamp: currentTimeStamp, eventType: 'attack', info: {}).insertToDb();
+          eventsOccurred++;
+
+        }
+
       }
 
 

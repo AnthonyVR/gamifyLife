@@ -5,6 +5,7 @@ import 'package:habit/event_view.dart';
 import 'package:habit/habit_list.dart';
 import 'package:habit/habit_details.dart';
 import 'package:habit/models/attack.dart';
+import 'package:habit/settings_view.dart';
 import 'package:habit/village_view.dart';
 import 'attack_view.dart';
 import 'database_view.dart';
@@ -99,9 +100,10 @@ class _HomePageState extends State<HomePage> {
   // Called when the application starts
   Future<void> calculateEvents() async {
     // add game_opened entry
-    Event game_opened = Event(eventType: 'game_opened', timestamp: DateTime.now(), info: {});
-    eventsOccurred = await game_opened.calculateEvents();
-    game_opened.insertToDb();
+    Event gameOpened = Event(eventType: 'game_opened', timestamp: DateTime.now(), info: {});
+    await Attack.handlePendingAttacks();
+    eventsOccurred = await gameOpened.calculateEvents();
+    gameOpened.insertToDb();
 
     setState(() {
     });
@@ -269,6 +271,15 @@ class _HomePageState extends State<HomePage> {
                   // More children here
                 ],
               ),
+            ),
+            ListTile(
+              title: Text('Settings'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SettingsView()),
+                );
+              },
             ),
             ListTile(
               title: Text('All habits'),
