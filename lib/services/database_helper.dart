@@ -158,6 +158,9 @@ class DatabaseHelper {
 
   Future createInitialDatabase() async {
 
+    print("Running function createInitialDatabase()...");
+
+
     final db = await database;
 
     await db.execute('''
@@ -176,12 +179,17 @@ class DatabaseHelper {
                       )
           ''');
 
+    print("Table habitsTable created");
+
     await db.execute('''
           CREATE TABLE $daysTable (
             $columnDate TEXT PRIMARY KEY,
             $columnWeekday TEXT NOT NULL
           )
     ''');
+
+    print("Table daysTable created");
+
 
     await db.execute('''
           CREATE TABLE $habitHistoryTable (
@@ -194,16 +202,37 @@ class DatabaseHelper {
           )
     ''');
 
+    print("Table habitHistoryTable created");
+
+
     // CREATE TABLES
     await Player.createTable(db);
+    print("Table Player created");
+
     await Settings.createTable(db);
+    print("Table Settings created");
+
     await Village.createTable(db);
+    print("Table Village created");
+
     await Tile.createTable(db);
+    print("Table Tile created");
+
     await Building.createTable(db);
+    print("Table Building created");
+
     await Unit.createTable(db);
+    print("Table Unit created");
+
     await MiscObject.createTable(db);
+    print("Table MiscObject created");
+
     await Attack.createTable(db);
+    print("Table Attack created");
+
     await Event.createTable(db);
+    print("Table Event created");
+
 
     // CREATE INITIAL SETTINGS
     Settings settings = Settings(id: 1, villageSpawnFrequency: 60, buildingLevelUpFrequency: 20, unitCreationFrequency: 20, unitTrainingFrequency: 20, attackFrequency: 20, costMultiplier: 1.5);
@@ -214,16 +243,19 @@ class DatabaseHelper {
 
     // INSERT FIRST VILLAGES
     await Village.insertVillage(db, Village(id: 1, name: 'Your village', owned: 1, row: 15, column: 15, coins: 30));
-    //await Village.insertVillage(db, Village(id: 2, name: 'Your village 2', owned: 1, row: 17, column: 17, coins: 40));
+    await Village.insertVillage(db, Village(id: 2, name: 'Your village 2', owned: 1, row: 14, column: 15, coins: 40));
     await Village.insertVillage(db, Village(id: 3, name: 'Enemy village 1', owned: 0, row: 15, column: 16, coins: 100));
-    //await Village.insertVillage(db, Village(id: 4, name: 'Enemy village 2', owned: 0, row: 18, column: 13, coins: 100));
+    await Village.insertVillage(db, Village(id: 4, name: 'Enemy village 2', owned: 0, row: 14, column: 16, coins: 100));
+    await Village.insertVillage(db, Village(id: 5, name: 'Enemy village 3', owned: 0, row: 16, column: 15, coins: 100));
 
 
     // CREATE INITIAL VILLAGE WITH ALL OF ITS INITIAL TILES, UNITS, AND BUILDINGS AND OBJECTS
     await Village.createInitialVillage(db, 1);
-    //await Village.createInitialVillage(db, 2);
+    await Village.createInitialVillage(db, 2);
     await Village.createInitialVillage(db, 3);
-    //await Village.createInitialVillage(db, 4);
+    await Village.createInitialVillage(db, 4);
+    await Village.createInitialVillage(db, 5);
+
 
 
     // FOR TESTING PURPOSE: add some units to own and enemy village
@@ -233,14 +265,14 @@ class DatabaseHelper {
     // await Unit(villageId: 1, name: "spearman", image: "assets/spearman.png", level: 1, offence: 10, defence: 10, amount: 8, cost: 50, speed: 50).insertToDb();
     // await Unit(villageId: 1, name: "wizard", image: "assets/wizard.png", level: 1, offence: 20, defence: 5, amount: 5, cost: 80, speed: 80).insertToDb();
 
-
+    print("Function createInitialDatabase() finished");
   }
 
 
 
   Future<void> clearDatabase() async {
     final db = await database;
-    print("Dropping all tables");
+    print("Running function clearDatabase()...");
     // Get the list of tables
     List<Map> tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'");
     for (Map table in tables) {
@@ -249,7 +281,7 @@ class DatabaseHelper {
         await db.execute('DROP TABLE ${table['name']}');
       }
     }
-    print("All tables dropped");
+    print("function clearDatabase() finished");
   }
 
 
@@ -260,33 +292,6 @@ class DatabaseHelper {
 
   }
 
-
-
-
-// Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-  //
-  //   print('Database version changed - Running _onUpgrade()...');
-  //   if (oldVersion < 9) {
-  //     await Village.createInitialVillage(100, 100, true);
-  //   }
-  // }
-
-  // Future<void> placeElement(Database db, String content, String image, int row, int col, int overwritable) async {
-  //   int tileId = row * 9 + col + 1;
-  //
-  //   var tile = {
-  //     columnTileContent: content,
-  //     columnTileImage: image,
-  //     columnOverwritable: overwritable
-  //   };
-  //
-  //   await db.update(
-  //       tilesTable,
-  //       tile,
-  //       where: '$columnTileID = ?',
-  //       whereArgs: [tileId]
-  //   );
-  // }
 
 
 }

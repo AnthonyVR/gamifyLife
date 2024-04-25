@@ -1,5 +1,9 @@
+import 'dart:math';
+
 import 'package:habit/services/database_helper.dart';
 import 'package:sqflite/sqflite.dart';
+import 'settings.dart';
+
 
 // Define a Unit class
 class Unit {
@@ -7,10 +11,13 @@ class Unit {
   final int villageId;
   final String name;
   final String image;
-  final int cost;
+  final int initialCost;
+  int cost;
   int level;
-  final int offence;
-  final int defence;
+  final int initialOffence;
+  final int initialDefence;
+  int offence;
+  int defence;
   final int speed;
   int amount;
 
@@ -21,8 +28,11 @@ class Unit {
     required this.villageId,
     required this.name,
     required this.image,
+    required this.initialCost,
     required this.cost,
     required this.level,
+    required this.initialOffence,
+    required this.initialDefence,
     required this.offence,
     required this.defence,
     required this.speed,
@@ -37,8 +47,11 @@ class Unit {
       'village_id': villageId,
       'name': name,
       'image': image,
+      'initial_cost': initialCost,
       'cost': cost,
       'level': level,
+      'initial_offence': initialOffence,
+      'initial_defence': initialDefence,
       'offence': offence,
       'defence': defence,
       'speed': speed,
@@ -57,8 +70,11 @@ class Unit {
       villageId: map['village_id'],
       name: map['name'],
       image: map['image'],
+      initialCost: map['initial_cost'],
       cost: map['cost'],
       level: map['level'],
+      initialOffence: map['initial_offence'],
+      initialDefence: map['initial_defence'],
       offence: map['offence'],
       defence: map['defence'],
       speed: map['speed'],
@@ -74,8 +90,11 @@ class Unit {
           village_id INTEGER,
           name TEXT NOT NULL,
           image TEXT NOT NULL,
+          initial_cost INTEGER NOT NULL,
           cost INTEGER NOT NULL,
           level INTEGER NOT NULL,
+          initial_offence INTEGER NOT NULL,
+          initial_defence INTEGER NOT NULL,
           offence INTEGER NOT NULL,
           defence INTEGER NOT NULL,
           speed INTEGER NOT NULL,
@@ -96,8 +115,18 @@ class Unit {
   Future<int> levelUp() async {
     final db = await DatabaseHelper.instance.database;
 
+    Settings? settings;
+    settings = await Settings.getSettingsFromDB();
+    final double costMultiplier = settings.costMultiplier;
+
     // Increase its level by 1
     level += 1;
+
+    offence = (initialOffence * pow(costMultiplier, level -1)).round();
+    defence = (initialDefence * pow(costMultiplier, level -1)).round();
+    cost = (initialCost * pow(costMultiplier, level -1)).round();
+
+    //upgradeCost = initialCost * (costMultiplier ^ (level - <span style="color: #6897bb;">1</span>))
 
     // Update the unit in the database
     return await db.update(

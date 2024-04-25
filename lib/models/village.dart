@@ -104,7 +104,7 @@ class Village {
 
   static Future<void> createInitialVillage(db, int villageId) async {
 
-    print("Running function createInitialVillage for village id ${villageId}");
+    print("Running function createInitialVillage() for village id ${villageId}");
 
     //await db.execute("DELETE FROM tiles");
 
@@ -166,10 +166,10 @@ class Village {
 
 
     // Add units entries with reference to this village to the units table
-    Unit(villageId: villageId, name: "spearman", image: "assets/spearman.png", level: 1, offence: 10, defence: 10, amount: 5, cost: 50, speed: 1).insertToDb();
-    Unit(villageId: villageId, name: "wizard", image: "assets/wizard.png", level: 1, offence: 20, defence: 5, amount: 4, cost: 80, speed: 1).insertToDb();
-    Unit(villageId: villageId, name: "catapult", image: "assets/catapult.png", level: 1, offence: 20, defence: 5, amount: 0, cost: 300, speed: 1).insertToDb();
-    Unit(villageId: villageId, name: "king", image: "assets/king.png", level: 1, offence: 20, defence: 5, amount: 1, cost: 1000, speed: 1).insertToDb();
+    Unit(villageId: villageId, name: "spearman", image: "assets/spearman.png", level: 1, initialOffence: 10, initialDefence: 10, offence: 10, defence: 10, amount: 5, initialCost: 50, cost: 50, speed: 1).insertToDb();
+    Unit(villageId: villageId, name: "wizard", image: "assets/wizard.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 4, initialCost: 80, cost: 80, speed: 1).insertToDb();
+    Unit(villageId: villageId, name: "catapult", image: "assets/catapult.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 100, initialCost: 300, cost: 300, speed: 1).insertToDb();
+    Unit(villageId: villageId, name: "king", image: "assets/king.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 1, initialCost: 1000, cost: 1000, speed: 1).insertToDb();
 
     // Add units to tiles for defending testing
     Tile(villageId: villageId, rowNum: 16, columnNum: 4, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
@@ -186,6 +186,8 @@ class Village {
     Tile(villageId: villageId, rowNum: 15, columnNum: 6, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
     Tile(villageId: villageId, rowNum: 15, columnNum: 7, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
     Tile(villageId: villageId, rowNum: 15, columnNum: 8, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
+
+    print("Function createInitialVillage() finished");
 
   }
 
@@ -287,6 +289,21 @@ class Village {
     return maps;
   }
 
+  static Future<int> getNumberOfOwnedVillages() async {
+    final db = await DatabaseHelper.instance.database;
+
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+    SELECT 
+      *
+    FROM villages
+    WHERE owned = 1;
+    ''');
+
+    List<Village> villages = maps.map((map) => Village.fromMap(map)).toList();
+
+    return villages.length;
+  }
+
   Future<int?> getBuildingLevel(String buildingName) async {
 
     final db = await DatabaseHelper.instance.database;
@@ -321,6 +338,16 @@ class Village {
       // Handle error: for example, building not found for the given villageId and buildingName.
       throw Exception('Building $buildingName not found for villageId $id');
     }
+  }
+
+  Future<void> updateBuildingLevel(String buildingName, int level) async {
+    final db = await DatabaseHelper.instance.database;
+
+   await db.rawUpdate('''
+      UPDATE buildings 
+      SET level = ? 
+      WHERE village_id = ? AND name = ?
+    ''', [level, id, buildingName]);
   }
 
   Future<int?> getCapacity() async {

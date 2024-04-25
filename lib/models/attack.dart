@@ -5,6 +5,8 @@ import 'package:habit/models/unit.dart';
 import 'package:habit/models/village.dart';
 import 'package:habit/services/database_helper.dart';
 import 'package:sqflite/sqflite.dart';
+import 'settings.dart';
+
 
 class Attack {
   final int? id;
@@ -21,7 +23,7 @@ class Attack {
   late int? luck;
   late int? outcome; // 1 if player wins | 0 if cpu wins
   late int? loot; // Amount of loot gathered
-  late int? damage;
+  late String? damage;
 
   final int owned; // 1 if player initiated attack | 0 if cpu initiated attack
 
@@ -105,8 +107,6 @@ class Attack {
 
   static Future<void> createTable(db) async {
 
-    print("recreating table!!!");
-
     await db.execute('''
       CREATE TABLE attacks (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -124,7 +124,7 @@ class Attack {
           owned INTEGER,
           completed INTEGER,
           loot INTEGER,
-          damage INTEGER,
+          damage TEXT,
           FOREIGN KEY (source_village_id) REFERENCES villages(id),
           FOREIGN KEY (destination_village_id) REFERENCES villages(id)
       )
@@ -336,9 +336,7 @@ class Attack {
 
     completed = 1;
     loot = 0;
-    damage = 0;
-
-    updateToDb();
+    damage = "none";
 
     print("removing units from defending enemy vilage");
     print(destinationUnitsAfterList);
@@ -349,13 +347,66 @@ class Attack {
     }
 
 
-    // Functionality for conquering a village
+
+    // Functionality for damaging a village
+    print("Running functionality for damaging a village...");
     int? destinationvillageTownhallLevel = await destinationVillage.getBuildingLevel("town_hall");
+
+    int remainingCatapults = 0;
+    for (var unitData in sourceUnitsAfterList) {
+      if (unitData['unit'].name == 'catapult') {
+        remainingCatapults += (unitData['amount'] as num).toInt();
+      }
+    }
+
+    if (destinationvillageTownhallLevel != null) {
+      int currentTownHallLevel = destinationvillageTownhallLevel;
+
+      // Loop through each level check if we have enough catapults to decrease the level
+      Settings? settings;
+      settings = await Settings.getSettingsFromDB();
+      final double costMultiplier = settings.costMultiplier;
+
+      while (currentTownHallLevel > 0 && remainingCatapults >= pow(costMultiplier, currentTownHallLevel)) {
+        print("another run!");
+        print(remainingCatapults);
+        print(pow(costMultiplier, currentTownHallLevel));
+        remainingCatapults -= pow(costMultiplier, currentTownHallLevel).toInt(); // Subtract the catapults needed for this level
+        currentTownHallLevel--; // Decrease town hall level by 1
+      }
+
+      // Set the new level only if it has changed
+      if (currentTownHallLevel != destinationvillageTownhallLevel) {
+
+        damage = "$destinationvillageTownhallLevel → $currentTownHallLevel";
+
+
+        destinationvillageTownhallLevel = max(currentTownHallLevel, 0); // Ensure it doesn't go below 0
+        await destinationVillage.updateBuildingLevel(
+            "town_hall", destinationvillageTownhallLevel);
+        print(
+            "Town hall level decreased to $destinationvillageTownhallLevel due to catapults.");
+      }
+    }
+
+      //await destinationVillage.updateBuildingLevel("town_hall", 10);
+
+
+    // Functionality for conquering a village
     print(destinationvillageTownhallLevel);
-    if(sourceUnitsAfterList.last['unit'].name == 'king' && sourceUnitsAfterList.last['amount'] > 0 && destinationvillageTownhallLevel == 1){
+    int numberOfOwnedVillages = await Village.getNumberOfOwnedVillages();
+    print("player owns $numberOfOwnedVillages villages");
+    print("King level is ${sourceUnitsAfterList.last['unit'].level}");
+
+    if(sourceUnitsAfterList.last['unit'].name == 'king' && sourceUnitsAfterList.last['unit'].level >= numberOfOwnedVillages && sourceUnitsAfterList.last['amount'] > 0 && destinationvillageTownhallLevel == 0){
+
       print("Village will be conquered");
       destinationVillage.changeOwner(1);
     }
+
+    updateToDb();
+
+    print("------------- END OF FUNCTION ----------------");
 
   }
 
@@ -488,26 +539,66 @@ class Attack {
 
     completed = 1;
     loot = 0;
-    damage = 0;
-
-    updateToDb();
-
-    // Functionality for conquering a village
-    if(sourceUnitsAfterList.contains("king")){
-      print("hoi");
-    }
+    damage = "none";
 
     await updateCasualtiesInTilesTable(destinationUnitsAfterList);
 
-    // Functionality for conquering a village
+
+    // Functionality for damaging a village
+    print("Running functionality for damaging a village...");
     int? destinationvillageTownhallLevel = await destinationVillage.getBuildingLevel("town_hall");
+
+    int remainingCatapults = 0;
+    for (var unitData in sourceUnitsAfterList) {
+      if (unitData['unit'].name == 'catapult') {
+        remainingCatapults += (unitData['amount'] as num).toInt();
+      }
+    }
+
+    if (destinationvillageTownhallLevel != null) {
+      int currentTownHallLevel = destinationvillageTownhallLevel;
+
+      // Loop through each level check if we have enough catapults to decrease the level
+      Settings? settings;
+      settings = await Settings.getSettingsFromDB();
+      final double costMultiplier = settings.costMultiplier;
+
+      while (currentTownHallLevel > 0 && remainingCatapults >= pow(costMultiplier, currentTownHallLevel)) {
+        print("another run!");
+        print(remainingCatapults);
+        print(pow(costMultiplier, currentTownHallLevel));
+        remainingCatapults -= pow(costMultiplier, currentTownHallLevel).toInt(); // Subtract the catapults needed for this level
+        currentTownHallLevel--; // Decrease town hall level by 1
+      }
+
+      // Set the new level only if it has changed
+      if (currentTownHallLevel != destinationvillageTownhallLevel) {
+
+        damage = "$destinationvillageTownhallLevel → $currentTownHallLevel";
+
+        destinationvillageTownhallLevel = max(currentTownHallLevel, 0); // Ensure it doesn't go below 0
+        await destinationVillage.updateBuildingLevel(
+            "town_hall", destinationvillageTownhallLevel);
+        print(
+            "Town hall level decreased to $destinationvillageTownhallLevel due to catapults.");
+      }
+
+    }
+
+
+    //await destinationVillage.updateBuildingLevel("town_hall", 10);
+
+
+    // Functionality for conquering a village
     print(destinationvillageTownhallLevel);
-    if(sourceUnitsAfterList.last['unit'].name == 'king' && sourceUnitsAfterList.last['amount'] > 0 && destinationvillageTownhallLevel == 1){
+    if(sourceUnitsAfterList.last['unit'].name == 'king' && sourceUnitsAfterList.last['amount'] > 0 && destinationvillageTownhallLevel == 0){
       print("Village will be conquered");
       destinationVillage.changeOwner(0);
       List villages = await Village.getEnemyVillages();
       destinationVillage.changeName("Not your village anymore ${villages.length}");
     }
+
+    updateToDb();
 
   }
 

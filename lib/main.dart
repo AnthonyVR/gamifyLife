@@ -291,7 +291,7 @@ class _HomePageState extends State<HomePage> {
               },
             ),
             ListTile(
-              title: Text('View database'),
+              title: Text('Database'),
               onTap: () {
                 Navigator.push(
                   context,

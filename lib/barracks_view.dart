@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import '../models/unit.dart';
 import 'models/village.dart';
+import 'models/settings.dart';
 
 class BarracksView extends StatefulWidget {
 
@@ -16,6 +17,20 @@ class BarracksView extends StatefulWidget {
 }
 
 class _BarracksViewState extends State<BarracksView> {
+
+  Settings? _settings;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+
+  void _loadSettings() async {
+    _settings = await Settings.getSettingsFromDB();
+    setState(() {});
+  }
 
   Future<List<Unit>> fetchUnits() async {
     Village? village = await Village.getVillageById(widget.villageId);
@@ -227,6 +242,8 @@ class _BarracksViewState extends State<BarracksView> {
 
   Widget _buildTrainingView() {
 
+    final double? costMultiplier = _settings?.costMultiplier;
+
     return Stack(
       children: [
         // Background Image
@@ -297,8 +314,8 @@ class _BarracksViewState extends State<BarracksView> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Atk: ${unit.offence} (+5)'),
-                                    Text('Def: ${unit.defence} (+5)'),
+                                    Text('Atk: ${unit.offence} (+${(unit.initialOffence * pow(costMultiplier!, unit.level )).round() - (unit.initialOffence * pow(costMultiplier!, unit.level -1)).round()})'),
+                                    Text('Def: ${unit.defence} (+${(unit.initialDefence * pow(costMultiplier!, unit.level )).round() - (unit.initialDefence * pow(costMultiplier!, unit.level -1)).round()})'),
                                     SizedBox(height: 8.0),
                                   ],
                                 ),
@@ -317,12 +334,22 @@ class _BarracksViewState extends State<BarracksView> {
                                       style: ButtonStyle(
                                         backgroundColor: MaterialStateProperty.all(Colors.green),
                                       ),
-                                      child: Row(
+                                      child: Column(
                                         mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.start, // Align text to the start
                                         children: [
                                           Text('Level Up '),
                                           Text(
-                                            '(${unit.id} coins)',
+                                            '${(unit.initialCost * pow(costMultiplier, (unit.level - 1)) + unit.initialCost * pow(costMultiplier, (unit.level))).round()} coins',
+                                            //(unit.cost * pow(costMultiplier!, unit.level - 1)).round()
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.yellow[600],
+                                            ),
+                                          ),
+                                          Text(
+                                            '+${unit.amount * (unit.initialCost * pow(costMultiplier, (unit.level)) - unit.initialCost * pow(costMultiplier, (unit.level - 1)) ).round()} coins',
+                                            //(unit.cost * pow(costMultiplier!, unit.level - 1)).round()
                                             style: TextStyle(
                                               fontSize: 12,
                                               color: Colors.yellow[600],
@@ -338,83 +365,6 @@ class _BarracksViewState extends State<BarracksView> {
                           ),
                         ),
                       )
-                  );
-
-                  return Card(
-                    elevation: 5.0,
-                    margin: const EdgeInsets.all(10.0),
-                    child: Padding(
-                      padding: const EdgeInsets.all(15.0),
-                      child: Row(
-                        children: [
-                          // 1st Column: Unit Name and Amount
-                          Expanded(
-                            flex: 2, // Allocate more space for the merged column
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center, // Center the content vertically
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Image.asset(
-                                  unit.image,
-                                  width: 60,
-                                  height: 60,
-                                ),
-                                Text(
-                                  '${unit.name} (lvl.${unit.level})',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 24,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          // 2nd Column: Attack, Defence, and Level Up
-                          Expanded(
-                            flex: 2,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Atk: ${unit.offence} (+5)'),
-                                Text('Def: ${unit.defence} (+5)'),
-                                SizedBox(height: 8.0),
-                              ],
-                            ),
-                          ),
-                          // 3rd Column: Create and Place in Village buttons
-                          Expanded(
-                            flex: 2,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                ElevatedButton(
-                                  onPressed: () async {
-                                    await levelUpUnit(unit.id);
-                                    setState(() {});
-                                  },
-                                  style: ButtonStyle(
-                                    backgroundColor: MaterialStateProperty.all(Colors.green),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text('Level Up '),
-                                      Text(
-                                        '(${unit.id} coins)',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.yellow[600],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   );
                 },
               );

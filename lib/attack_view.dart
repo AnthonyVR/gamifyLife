@@ -242,7 +242,7 @@ class _AttackViewState extends State<AttackView> {
                   ),
                 ),
                 SizedBox(height: 30.0),  // You can adjust the spacing as needed
-                Center(child: Text("Damage: ${attack.damage}")),
+                Center(child: Text("Damage to townhall: ${attack.damage}")),
               ],
             ),
             Positioned(
