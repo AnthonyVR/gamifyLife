@@ -5,6 +5,7 @@ import 'package:habit/farm_view.dart';
 import 'package:habit/models/attack.dart';
 import 'package:habit/villageAppBar.dart';
 import 'package:habit/village_view.dart';
+import 'package:intl/intl.dart';
 import '../models/tile.dart';
 import '../services/database_helper.dart';
 import 'models/unit.dart';
@@ -183,7 +184,6 @@ class _MapViewState extends State<MapView> {
                   if (_tapPosition != null && imagePath != null) {
 
                     if(tileMap[row]![column]!['owned'] == 1){
-                      print("eeeee");
                       _showOwnedVillagePopup(context, _tapPosition!, tileMap[row]![column]!);
                     } else {
                       _showEnemyVillagePopup(context, _tapPosition!, tileMap[row]![column]!);
@@ -201,9 +201,6 @@ class _MapViewState extends State<MapView> {
 
   Future<void> _showOwnedVillagePopup(BuildContext context, Offset offset, Map<String, dynamic> tileData) async {
     final RenderBox overlay = Overlay.of(context)?.context.findRenderObject() as RenderBox;
-
-    print("tiledata");
-    print(tileData['name']);
 
     Village? village = await  Village.getVillageById(tileData['id']);
     List<Unit>? units = await village.getUnits();
@@ -281,9 +278,6 @@ class _MapViewState extends State<MapView> {
 
   Future<void> _showEnemyVillagePopup(BuildContext context, Offset offset, Map<String, dynamic> tileData) async {
     final RenderBox overlay = Overlay.of(context)?.context.findRenderObject() as RenderBox;
-
-    print("tiledata");
-    print(tileData['name']);
 
     showMenu(
       color: Colors.white24,
@@ -370,20 +364,55 @@ class _UnitsPopupState extends State<UnitsPopup> {
 
 
   void _onAttackPressed() {
-    List<Map<String, dynamic>> attackDetails = selectedUnitsMap.entries
+
+    List<Map<String, dynamic>> selectedUnits = selectedUnitsMap.entries
         .map((entry) => {
-      'unit': entry.key,
+      'unit': {'name': entry.key.name, 'speed': entry.key.speed}, // Structure modified here
       'amount': entry.value,
     })
         .where((detail) => detail['amount'] as int > 0)
         .toList();
 
-    // Call the createAttack function with the list of selected units and their amounts
-    //Attack.attackEnemyVillage(widget.selectedVillageId, widget.destinationVillageId, attackDetails);
-    Attack.createAttack(widget.selectedVillageId, widget.destinationVillageId, attackDetails);
-    //attackEnemyVillage(attackDetails);
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return ConfirmationPopup(
+          onConfirm: () {
+            List<Map<String, dynamic>> attackDetails = selectedUnitsMap.entries
+                .map((entry) => {
+              'unit': entry.key,
+              'amount': entry.value,
+            })
+                .where((detail) => detail['amount'] as int > 0)
+                .toList();
 
-    print('Attack details: $attackDetails');
+            //Call the attack function with the list of selected units and their amounts
+            Attack.createAttack(widget.selectedVillageId, widget.destinationVillageId, attackDetails);
+
+            print('Attack confirmed with details: $attackDetails');
+          },
+          onCancel: () {
+            print('Attack canceled');
+          },
+          units: selectedUnits, selectedVillageId: widget.selectedVillageId, destinationVillageId: widget.destinationVillageId
+        );
+      },
+    );
+
+    // List<Map<String, dynamic>> attackDetails = selectedUnitsMap.entries
+    //     .map((entry) => {
+    //   'unit': entry.key,
+    //   'amount': entry.value,
+    // })
+    //     .where((detail) => detail['amount'] as int > 0)
+    //     .toList();
+    //
+    // // Call the createAttack function with the list of selected units and their amounts
+    // //Attack.attackEnemyVillage(widget.selectedVillageId, widget.destinationVillageId, attackDetails);
+    // Attack.createAttack(widget.selectedVillageId, widget.destinationVillageId, attackDetails);
+    // //attackEnemyVillage(attackDetails);
+    //
+    // print('Attack details: $attackDetails');
   }
 
   @override
@@ -436,6 +465,122 @@ class _UnitsPopupState extends State<UnitsPopup> {
 
 
 
+
+
+
+
+
+
+class ConfirmationPopup extends StatefulWidget {
+  final VoidCallback onConfirm;
+  final VoidCallback onCancel;
+  final List<Map<String, dynamic>> units;  // Units data
+  final int selectedVillageId;        // Add this line
+  final int destinationVillageId;
+
+  const ConfirmationPopup({
+    Key? key,
+    required this.onConfirm,
+    required this.onCancel,
+    required this.units,
+    required this.selectedVillageId,   // Initialize in constructor
+    required this.destinationVillageId // Initialize in constructor
+  }) : super(key: key);
+
+  @override
+  _ConfirmationPopupState createState() => _ConfirmationPopupState();
+}
+
+class _ConfirmationPopupState extends State<ConfirmationPopup> {
+  late int slowestSpeed;
+  Duration? attackDuration;  // Holds the duration as a Duration object
+  DateTime? arrivalTime;     // Holds the calculated arrival time as a DateTime
+
+  @override
+  void initState() {
+    super.initState();
+    calculateTravelTime();
+  }
+
+  Future<void> calculateTravelTime() async {
+    slowestSpeed = widget.units.map((unitData) {
+      return unitData['unit']['speed'] as int;
+    }).reduce((a, b) => a > b ? a : b);
+
+    double distanceBetweenVillages = await Attack.calculateDistanceBetweenVillagesById(
+        widget.selectedVillageId, widget.destinationVillageId
+    );
+
+    int attackDurationMinutes = (distanceBetweenVillages * slowestSpeed).round();
+    attackDuration = Duration(minutes: attackDurationMinutes);  // Convert minutes to a Duration object
+    arrivalTime = DateTime.now().add(attackDuration!);  // Calculate the arrival time
+
+    // Use setState to update the UI after the asynchronous operation
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Use a conditional check to handle potential unavailability before initialization completes
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(height: 10),
+            ...widget.units.map((unit) => Text("${unit['unit']['name']}: ${unit['amount']}")).toList(),
+            SizedBox(height: 10),
+            if (attackDuration != null) Text("Travel time: ${formatDuration(attackDuration!)}"),
+            if (arrivalTime != null) Text("Arrival time: ${formatDateTime(arrivalTime!)}"),
+            SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    widget.onConfirm();
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop();
+
+                  },
+                  style: ElevatedButton.styleFrom(
+                    primary: Colors.green,
+                  ),
+                  child: Text('Confirm'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    widget.onCancel();
+                    Navigator.of(context).pop(); // Close the dialog on cancellation
+                  },
+                  style: ElevatedButton.styleFrom(
+                    primary: Colors.red,
+                  ),
+                  child: Text('Cancel'),
+                ),
+              ],
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Helper method to format the duration
+  String formatDuration(Duration duration) {
+    return "${duration.inHours} hours and ${duration.inMinutes % 60} minutes";
+  }
+
+  // Helper method to format the DateTime
+  String formatDateTime(DateTime dateTime) {
+    return DateFormat('dd/MM/yy - HH:mm:ss').format(dateTime);
+  }
+}
 
 class CoordinatesDisplay extends StatefulWidget {
   final int row;

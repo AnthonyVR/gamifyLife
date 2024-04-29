@@ -159,9 +159,21 @@ class Attack {
     Village destinationVillage = await Village.getVillageById(destinationVillageId);
     var currentTime = DateTime.now();
 
-    int slowestSpeed = _calculateSlowestSpeed(sourceUnits);
-    double distanceBetweenVillages = _calculateDistanceBetweenVillages(sourceVillage, destinationVillage);
+    print("PRINTING SOURCE UNITS FOR SLOWEST SPEED!");
+    print(sourceUnits);
+
+    int slowestSpeed = calculateSlowestSpeed(sourceUnits);
+
+    print("test 1");
+
+    double distanceBetweenVillages = calculateDistanceBetweenVillages(sourceVillage, destinationVillage);
+
+    print("test 4");
+
     DateTime arrivalTime = _calculateArrivalTime(currentTime, distanceBetweenVillages, slowestSpeed);
+
+    print("test 5");
+
 
     Attack attack = Attack(
       sourceVillageId: sourceVillageId,
@@ -330,8 +342,8 @@ class Attack {
     sourceUnitsAfter = serializeUnits(sourceUnitsAfterList);
     destinationUnitsAfter = serializeUnits(destinationUnitsAfterList);
 
-    int slowestReturnSpeed = _calculateSlowestSpeed(sourceUnitsAfterList);
-    double distanceBetweenVillages = _calculateDistanceBetweenVillages(sourceVillage, destinationVillage);
+    int slowestReturnSpeed = calculateSlowestSpeed(sourceUnitsAfterList);
+    double distanceBetweenVillages = calculateDistanceBetweenVillages(sourceVillage, destinationVillage);
     returnedAt = _calculateArrivalTime(arrivedAt, distanceBetweenVillages, slowestReturnSpeed);
 
     completed = 1;
@@ -533,8 +545,8 @@ class Attack {
     print("destinationUnits After with rows: ${destinationUnitsAfterList}");
 
 
-    int slowestReturnSpeed = _calculateSlowestSpeed(sourceUnitsAfterList);
-    double distanceBetweenVillages = _calculateDistanceBetweenVillages(sourceVillage, destinationVillage);
+    int slowestReturnSpeed = calculateSlowestSpeed(sourceUnitsAfterList);
+    double distanceBetweenVillages = calculateDistanceBetweenVillages(sourceVillage, destinationVillage);
     returnedAt = _calculateArrivalTime(arrivedAt, distanceBetweenVillages, slowestReturnSpeed);
 
     completed = 1;
@@ -621,19 +633,32 @@ class Attack {
     });
   }
 
-  static int _calculateSlowestSpeed(List<Map<String, dynamic>> units) {
+  static int calculateSlowestSpeed(List<Map<String, dynamic>> units) {
+
+    print("test2");
     var filteredUnits = units.where((unitData) => unitData['amount'] > 0).toList();
 
     if (filteredUnits.isEmpty) {
       return 0;
     }
 
+    print("test3");
+    print(filteredUnits);
     return filteredUnits
         .map((unitData) => unitData['unit'].speed)
         .reduce((a, b) => a > b ? a : b);
+
   }
 
-  static double _calculateDistanceBetweenVillages(Village source, Village destination) {
+  static Future<double> calculateDistanceBetweenVillagesById(int sourceId, int destinationId) async {
+
+    Village source = await Village.getVillageById(sourceId);
+    Village destination = await Village.getVillageById(destinationId);
+
+    return calculateDistanceBetweenVillages(source, destination);
+  }
+
+  static double calculateDistanceBetweenVillages(Village source, Village destination) {
     return sqrt(pow(destination.row - source.row, 2) + pow(destination.column - source.column, 2));
   }
 
