@@ -549,7 +549,6 @@ class _ConfirmationPopupState extends State<ConfirmationPopup> {
 
                   },
                   style: ElevatedButton.styleFrom(
-                    primary: Colors.green,
                   ),
                   child: Text('Confirm'),
                 ),
@@ -559,7 +558,6 @@ class _ConfirmationPopupState extends State<ConfirmationPopup> {
                     Navigator.of(context).pop(); // Close the dialog on cancellation
                   },
                   style: ElevatedButton.styleFrom(
-                    primary: Colors.red,
                   ),
                   child: Text('Cancel'),
                 ),

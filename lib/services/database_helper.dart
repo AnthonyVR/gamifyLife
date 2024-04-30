@@ -152,6 +152,8 @@ class DatabaseHelper {
 
   Future _onCreate(Database db, int version) async {
 
+    print("running _onCreate()");
+
     await createInitialDatabase();
 
   }
