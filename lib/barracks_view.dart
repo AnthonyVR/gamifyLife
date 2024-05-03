@@ -2,9 +2,12 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:sqflite/sqflite.dart';
 import '../models/unit.dart';
 import 'models/village.dart';
 import 'models/settings.dart';
+import 'package:habit/services/database_helper.dart';
+
 
 class BarracksView extends StatefulWidget {
 
@@ -28,7 +31,9 @@ class _BarracksViewState extends State<BarracksView> {
 
 
   void _loadSettings() async {
-    _settings = await Settings.getSettingsFromDB();
+    Database db = await DatabaseHelper.instance.database;
+
+    _settings = await Settings.getSettingsFromDB(db);
     setState(() {});
   }
 

@@ -53,7 +53,8 @@ class Event {
   }
 
   Future<int> insertToDb() async {
-    Database db = await DatabaseHelper.instance.database;
+
+    final db = await DatabaseHelper.instance.database;
     return await db.insert('events', toMap());
   }
 
@@ -68,8 +69,7 @@ class Event {
     return List.generate(maps.length, (i) => Event.fromMap(maps[i]));
   }
 
-  Future<DateTime> getLastGameOpened() async{
-    Database db = await DatabaseHelper.instance.database;
+  Future<DateTime> getLastGameOpened(Database db) async{
 
     // The query returns the latest 'game_opened' event ordered by timestamp in descending order
     List<Map<String, dynamic>> result = await db.query(
@@ -105,6 +105,7 @@ class Event {
     double cumulativeProbability = exp(-lambda);
 
     while (randomValue > cumulativeProbability) {
+
       k++;
       cumulativeProbability += pow(lambda, k) * exp(-lambda) / _factorial(k);
     }
@@ -129,7 +130,9 @@ class Event {
 
   Future<int> calculateEvents() async {
 
-    Settings settings = await Settings.getSettingsFromDB();
+    final db = await DatabaseHelper.instance.database;
+
+    Settings settings = await Settings.getSettingsFromDB(db);
 
     int? villageSpawnFrequency = settings.villageSpawnFrequency; //3 * 24 * 60; // minutes
     int buildingLevelUpFrequency = settings.buildingLevelUpFrequency;
@@ -139,27 +142,29 @@ class Event {
 
     int eventsOccurred = 0;
 
-
-    Database db = await DatabaseHelper.instance.database;
-
-    DateTime lastGameOpened = await getLastGameOpened();
+    DateTime lastGameOpened = await getLastGameOpened(db);
 
     DateTime currentTimeStamp = DateTime.now();
 
     // calculate time between game opened
     int hoursSinceGameOpened = currentTimeStamp.difference(lastGameOpened).inMinutes;
-    print(hoursSinceGameOpened);
 
+    Random random = Random();
 
     int numberOfVillageSpawns =  calculateNumberOfEvents(hoursSinceGameOpened, villageSpawnFrequency);
     //numberOfVillageSpawns = 0;
     for (int i = 0; i < numberOfVillageSpawns; i++) {
-      Map coordinates = await Village.spawnVillage();
-      Event(timestamp: currentTimeStamp, eventType: 'village_spawn', info: coordinates).insertToDb();
+
+      Map coordinates = await Village.spawnVillage(db);
+
+      int randomMinutes = random.nextInt(hoursSinceGameOpened);
+      DateTime randomTimestamp = lastGameOpened.add(Duration(minutes: randomMinutes));
+
+      Event(timestamp: randomTimestamp, eventType: 'village_spawn', info: coordinates).insertToDb();
       eventsOccurred++;
     }
 
-    List<Village> villages = await Village.getEnemyVillages();
+    List<Village> villages = await Village.getEnemyVillages(db);
 
     for(Village village in villages){
       int numberOfBuildingLevelUps =  calculateNumberOfEvents(hoursSinceGameOpened, buildingLevelUpFrequency);
@@ -167,34 +172,46 @@ class Event {
       int numberOfUnitTrainings =  calculateNumberOfEvents(hoursSinceGameOpened, unitTrainingFrequency);
       int numberOfAttacks =  calculateNumberOfEvents(hoursSinceGameOpened, attackFrequency);
 
+      //each village can only attack the player once for each timeframe because the database logic does not allow otherwise
+      numberOfAttacks = numberOfAttacks > 0 ? 1 : 0;
+
       //numberOfBuildingLevelUps = 0;
       for (int i = 0; i < numberOfBuildingLevelUps; i++) {
         String building = await village.updateEnemyBuilding();
-        print(building);
-        Event(timestamp: currentTimeStamp, eventType: 'building_level_up', info: {'building' : building}).insertToDb();
+
+        int randomMinutes = random.nextInt(hoursSinceGameOpened);
+        DateTime randomTimestamp = lastGameOpened.add(Duration(minutes: randomMinutes));
+
+        Event(timestamp: randomTimestamp, eventType: 'building_level_up', info: {'building' : building}).insertToDb();
         eventsOccurred++;
       }
 
       //numberOfUnitCreations = 0;
       for (int i = 0; i < numberOfUnitCreations; i++) {
         Map unitAdded = await village.addEnemyUnit();
-        print(unitAdded);
-        Event(timestamp: currentTimeStamp, eventType: 'unit_added', info: unitAdded).insertToDb();
+
+        int randomMinutes = random.nextInt(hoursSinceGameOpened);
+        DateTime randomTimestamp = lastGameOpened.add(Duration(minutes: randomMinutes));
+
+        Event(timestamp: randomTimestamp, eventType: 'unit_added', info: unitAdded).insertToDb();
         eventsOccurred++;
       }
 
       //numberOfUnitTrainings = 0;
       for (int i = 0; i < numberOfUnitTrainings; i++) {
         Map unitTrained = await village.trainEnemyUnit();
-        print(unitTrained);
-        Event(timestamp: currentTimeStamp, eventType: 'unit_trained', info: unitTrained).insertToDb();
+
+        int randomMinutes = random.nextInt(hoursSinceGameOpened);
+        DateTime randomTimestamp = lastGameOpened.add(Duration(minutes: randomMinutes));
+
+        Event(timestamp: randomTimestamp, eventType: 'unit_trained', info: unitTrained).insertToDb();
         eventsOccurred++;
       }
 
       //numberOfAttacks = 0;
       for (int i = 0; i < numberOfAttacks; i++) {
 
-        //// pick a random village from the player's villages
+        //// pick a random village from the player's villages (village that gets attacked)
         List<Village> playerVillages = await Village.getPlayerVillages();
 
         // Create a Random instance
@@ -225,14 +242,16 @@ class Event {
           // REMOVE THIS LATER !!!
           //playerRandomVillageId = 1;
 
-          await Attack.createAttack(village.id!, playerRandomVillageId, enemySourceUnits);
-          Event(timestamp: currentTimeStamp, eventType: 'attack', info: {}).insertToDb();
+          int randomMinutes = random.nextInt(hoursSinceGameOpened);
+          DateTime randomTimestamp = lastGameOpened.add(Duration(minutes: randomMinutes));
+
+          await Attack.createAttack(randomTimestamp, village.id!, playerRandomVillageId, enemySourceUnits);
+          Event(timestamp: randomTimestamp, eventType: 'attack', info: {}).insertToDb();
           eventsOccurred++;
 
         }
 
       }
-
 
     }
 

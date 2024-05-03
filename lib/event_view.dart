@@ -29,6 +29,7 @@ class _EventViewState extends State<EventView> {
       DateTime dateTime = DateTime.parse(timestamp);
       return DateFormat('d MMMM y, HH:mm:ss').format(dateTime);  // Adjust format as needed
     }
+
     return Scaffold(
       appBar: AppBar(title: Text("Events"), backgroundColor: Colors.grey,),
       body: FutureBuilder<List<Event>>(
@@ -38,33 +39,39 @@ class _EventViewState extends State<EventView> {
             if (snapshot.hasError) {
               return Center(child: Text("Error loading events"));
             }
-            final eventList = snapshot.data!;
-            return ListView.builder(
-              itemCount: eventList.length,
-              itemBuilder: (context, index) {
-                final event = eventList[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 4.0),
-                  child: ListTile(
-                    tileColor: _getColorForEventType(event.eventType),
-                    title: Text(formatTimestamp(event.timestamp.toIso8601String())),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(event.info.toString()),
-                            Spacer(), // This will take up all available space between the text widgets
-                            Text(event.eventType),
-                          ],
-                        )
-                      ],
-                    ),
-                  ),
-                );
-              },
-            );
+            if (snapshot.hasData) {
+              // Sort the events by timestamp in descending order
+              snapshot.data!.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
+              final eventList = snapshot.data!;
+              return ListView.builder(
+                itemCount: eventList.length,
+                itemBuilder: (context, index) {
+                  final event = eventList[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 4.0),
+                    child: ListTile(
+                      tileColor: _getColorForEventType(event.eventType),
+                      title: Text(formatTimestamp(event.timestamp.toIso8601String())),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(event.info.toString()),
+                              Spacer(), // This will take up all available space between the text widgets
+                              Text(event.eventType),
+                            ],
+                          )
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            } else {
+              return Center(child: Text("No events found"));
+            }
           } else {
             return const CircularProgressIndicator();
           }
@@ -72,6 +79,7 @@ class _EventViewState extends State<EventView> {
       ),
     );
   }
+
 
   Color _getColorForEventType(String eventType) {
     switch(eventType) {

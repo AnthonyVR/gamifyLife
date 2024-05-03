@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
 import 'models/attack.dart';
 import 'models/unit.dart';
+import 'main.dart';
 
 class AttackView extends StatefulWidget {
   @override
@@ -23,7 +24,9 @@ class _AttackViewState extends State<AttackView> {
 
   @override
   void initState() {
+    calculateEvents();
     super.initState();
+
     processAttacks();
   }
 
@@ -131,45 +134,47 @@ class _AttackViewState extends State<AttackView> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8.0),
             ),
-            child: ListTile(
-              tileColor: attack.arrivedAt.isAfter(DateTime.now())
-                  ? Colors.white
-                  : (attack.outcome == 0
-                  ? Colors.red[100]
-                  : Colors.green[100]),
-              title: attack.arrivedAt.isAfter(DateTime.now())
-                  ? (attack.returnedAt == null
-                  ? Text(" Arrival: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.arrivedAt)}")
-                  : Text(" Arrival: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.arrivedAt)} \n(Return: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.returnedAt!)} )"))
-                  : (attack.returnedAt == null
-                  ? Text(" Return: Not available")
-                  : Text(" Return: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.returnedAt!)}")),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(" From: ${attack.sourceVillageName}"),
-                  Text(" To: ${attack.destinationVillageName}")
-                ],
+              child: ListTile(
+                tileColor: attack.opened == 1
+                    ? attack.arrivedAt.isAfter(DateTime.now())
+                    ? Colors.white.withOpacity(0.5) // Faded white
+                    : (attack.outcome == 0 ? Colors.pink[100]!.withOpacity(0.4) : Colors.lightGreen[100]!.withOpacity(0.4))
+                    : attack.arrivedAt.isAfter(DateTime.now())
+                    ? Colors.white
+                    : (attack.outcome == 0 ? Colors.red[500] : Colors.green[500]),
+                title: attack.arrivedAt.isAfter(DateTime.now())
+                    ? (attack.returnedAt == null
+                    ? Text(" Arrival: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.arrivedAt)}")
+                    : Text(" Arrival: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.arrivedAt)} \n(Return: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.returnedAt!)} )"))
+                    : (attack.returnedAt == null
+                    ? Text(" Return: Not available")
+                    : Text(" Return: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.returnedAt!)}")),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(" From: ${attack.sourceVillageName}"),
+                    Text(" To: ${attack.destinationVillageName}")
+                  ],
+                ),
+                trailing: Image.asset(
+                  attack.owned == 1 ? 'assets/attack.png' : 'assets/defense.png',
+                  width: 24.0,
+                  height: 24.0,
+                ),
+                onTap: () {
+                  if (attack.completed > 0) {
+                    showDialog(
+                      context: context,
+                      builder: (context) => _attackDetailsDialog(attack),
+                    );
+                  } else if(attack.owned == 1) {
+                    showDialog(
+                      context: context,
+                      builder: (context) => _showOutgoingAttackDetails(attack),
+                    );
+                  }
+                },
               ),
-              trailing: Image.asset(
-                attack.owned == 1 ? 'assets/attack.png' : 'assets/defense.png',
-                width: 24.0,
-                height: 24.0,
-              ),
-              onTap: () {
-                if (attack.completed > 0) {
-                  showDialog(
-                    context: context,
-                    builder: (context) => _attackDetailsDialog(attack),
-                  );
-                } else if(attack.owned == 1) {
-                  showDialog(
-                    context: context,
-                    builder: (context) => _showOutgoingAttackDetails(attack),
-                  );
-                }
-              },
-            ),
           ),
         );
       },
@@ -183,20 +188,40 @@ class _AttackViewState extends State<AttackView> {
       return DateFormat('d MMMM y, HH:mm:ss').format(dateTime);  // Adjust format as needed
     }
 
+    if(attack.opened == 0){
+      attack.opened = 1;
+      attack.updateToDb();
+    }
+
     return Dialog(
       insetPadding: EdgeInsets.all(10.0), // make dialog almost full screen
       child: Container(
         decoration: BoxDecoration(
           color: attack.outcome == 0 ? Colors.red[100] : Colors.green[100],
+          boxShadow: attack.opened == 1 ? [
+            BoxShadow( // Shadow effect if viewed
+              color: Colors.green.withOpacity(0.5),
+              spreadRadius: 5,
+              blurRadius: 7,
+              offset: Offset(0, 3), // changes position of shadow
+            ),
+          ] : null,
         ),
+
         child: Stack(
           children: [
             ListView(
               padding: EdgeInsets.all(8.0),
               children: [
-                Center(child: Text(formatTimestamp(attack.arrivedAt.toIso8601String()))),
-                SizedBox(height: 80),
+                Center(child: Text("Sent: ${formatTimestamp(attack.startedAt.toIso8601String())}")),
+                SizedBox(height: 10),
+                Center(child: Text("Arrived: ${formatTimestamp(attack.arrivedAt.toIso8601String())}")),
+                SizedBox(height: 10),
+                Center(child: Text("Returned: ${formatTimestamp(attack.returnedAt!.toIso8601String())}")),
+                SizedBox(height: 50),
                 Center(child: Text("Attacker: ${attack.sourceVillageName ?? 'Unknown'}")),
+                Center(child: Text("opened: ${attack.opened}")),
+
                 FutureBuilder<Widget>(
                   future: generateUnitsTable(attack.sourceUnitsBefore, attack.sourceUnitsAfter!, 1, attack.owned),
                   builder: (context, snapshot) {

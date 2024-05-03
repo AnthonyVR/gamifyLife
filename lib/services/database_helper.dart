@@ -147,23 +147,22 @@ class DatabaseHelper {
     }
 
     String path = join(await getDatabasesPath(), _databaseName);
-    return await openDatabase(path, version: _databaseVersion, onCreate: _onCreate); //, onUpgrade: _onUpgrade
+    return await openDatabase(path, version: _databaseVersion, onCreate: _onCreate);
   }
 
   Future _onCreate(Database db, int version) async {
 
     print("running _onCreate()");
 
-    await createInitialDatabase();
+    await createInitialDatabase(db);
 
   }
 
-  Future createInitialDatabase() async {
+  Future createInitialDatabase(Database db) async {
 
     print("Running function createInitialDatabase()...");
 
-
-    final db = await database;
+    print("Test 1");
 
     await db.execute('''
           CREATE TABLE $habitsTable (
@@ -181,6 +180,9 @@ class DatabaseHelper {
                       )
           ''');
 
+    print("Test 2");
+
+
     print("Table habitsTable created");
 
     await db.execute('''
@@ -191,6 +193,9 @@ class DatabaseHelper {
     ''');
 
     print("Table daysTable created");
+
+    print("Test 3");
+
 
 
     await db.execute('''
@@ -238,7 +243,12 @@ class DatabaseHelper {
 
     // CREATE INITIAL SETTINGS
     Settings settings = Settings(id: 1, villageSpawnFrequency: 60, buildingLevelUpFrequency: 20, unitCreationFrequency: 20, unitTrainingFrequency: 20, attackFrequency: 20, costMultiplier: 1.5);
-    settings.insertToDb();
+    settings.insertToDb(db);
+
+    Settings ssettings = await Settings.getSettingsFromDB(db);
+
+    print("the seettings:");
+    print(ssettings);
 
     // INSERT INITIAL PLAYER
     await Player.insertPlayer(db, Player(id: 1, level: 1, score: 0, rewardFactor: 1));
@@ -289,8 +299,12 @@ class DatabaseHelper {
 
   Future<void> clearAndRebuildDatabase() async {
 
+    print("REMOVING AND REBUILDING DATABASE");
+
+    final db = await database;
+
     await clearDatabase();
-    await createInitialDatabase();
+    await createInitialDatabase(db);
 
   }
 

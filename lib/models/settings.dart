@@ -56,8 +56,9 @@ class Settings {
     ''');
   }
 
-  Future<int> insertToDb() async {
-    Database db = await DatabaseHelper.instance.database;
+  Future<int> insertToDb(Database db) async {
+
+    print("settings inserted into db");
 
     return await db.insert('settings', toMap());
   }
@@ -69,8 +70,8 @@ class Settings {
   }
 
 
-  static Future<Settings> getSettingsFromDB() async {
-    Database db = await DatabaseHelper.instance.database;
+  static Future<Settings> getSettingsFromDB(Database db) async {
+
     final result = await db.query('settings', limit: 1);
     return Settings.fromMap(result.first);
   }

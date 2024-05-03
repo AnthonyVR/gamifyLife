@@ -189,9 +189,9 @@ class _VillageViewState extends State<VillageView> {
                   },
                   feedback: Material(
                     elevation: 4.0,
-                    child: Image.asset(tileMap[row]![column]!['imagePath'], fit: BoxFit.fill),
+                    child: Image.asset(tileMap[row]![column]!['imagePath'], width: 100),
                   ),
-                  child: Image.asset(tileMap[row]![column]!['imagePath'], fit: BoxFit.fill),
+                  child: tileMap[row]![column]!['objectName'] == 'wizard' ? Image.asset(tileMap[row]![column]!['imagePath'], width: 100, height: 100) :  Image.asset(tileMap[row]![column]!['imagePath'], width: 100, height: 100) , //Image.asset(tileMap[row]![column]!['imagePath'], fit: BoxFit.fill),
                   onDragStarted: () {
                     _initialRow = row;
                     _initialColumn = column;

@@ -1,12 +1,11 @@
 buildscript {
-    ext.kotlin_version = '1.9.23'
+    ext.kotlin_version = '1.8.10'  // Ensure this matches with the Kotlin version used by your plugins and libraries
     repositories {
         google()
         mavenCentral()
     }
-
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.1.2'
+        classpath 'com.android.tools.build:gradle:7.0.2'  // Ensure this version is compatible with your Kotlin version
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
@@ -14,7 +13,9 @@ buildscript {
 allprojects {
     repositories {
         google()
-        mavenCentral()
+        maven {
+            url 'https://storage.googleapis.com/download.flutter.io'
+        }
     }
 }
 

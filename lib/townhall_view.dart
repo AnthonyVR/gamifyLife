@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:habit/villageAppBar.dart';
+import 'package:sqflite/sqflite.dart';
 import 'models/settings.dart';
 import 'models/village.dart';
+import 'package:habit/services/database_helper.dart';
+
 
 class TownhallView extends StatefulWidget {
 
@@ -81,8 +84,9 @@ class _TownhallViewState extends State<TownhallView> {
                       onPressed: () {
                         if ((index) == currentTownHallLevel) {
                           // Only allow upgrade if the level is 1 greater than the current townhall level
-                          setState(() {
-                            village?.upgradeBuildingLevel('town_hall');
+                          setState(() async {
+                            final db = await DatabaseHelper.instance.database;
+                            village?.upgradeBuildingLevel(db, 'town_hall');
                             currentTownHallLevel = index + 1; // Placeholder logic, you can replace with db update logic.
                           });
                         }
@@ -99,7 +103,9 @@ class _TownhallViewState extends State<TownhallView> {
   }
 
   void _loadSettings() async {
-    _settings = await Settings.getSettingsFromDB();
+    Database db = await DatabaseHelper.instance.database;
+
+    _settings = await Settings.getSettingsFromDB(db);
     setState(() {});
   }
 

@@ -387,7 +387,7 @@ class _UnitsPopupState extends State<UnitsPopup> {
                 .toList();
 
             //Call the attack function with the list of selected units and their amounts
-            Attack.createAttack(widget.selectedVillageId, widget.destinationVillageId, attackDetails);
+            Attack.createAttack(DateTime.now(), widget.selectedVillageId, widget.destinationVillageId, attackDetails);
 
             print('Attack confirmed with details: $attackDetails');
           },

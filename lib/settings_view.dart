@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'models/settings.dart'; // Make sure to adjust the path if needed.
+import 'package:sqflite/sqflite.dart';
+import 'models/settings.dart';
+import 'package:habit/services/database_helper.dart';
+
 
 class SettingsView extends StatefulWidget {
   @override
@@ -22,7 +25,9 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   _loadSettings() async {
-    var settings = await Settings.getSettingsFromDB();
+    Database db = await DatabaseHelper.instance.database;
+
+    var settings = await Settings.getSettingsFromDB(db);
     if (settings != null) {
       setState(() {
         currentSettings = settings;

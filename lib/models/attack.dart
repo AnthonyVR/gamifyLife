@@ -24,6 +24,7 @@ class Attack {
   late int? outcome; // 1 if player wins | 0 if cpu wins
   late int? loot; // Amount of loot gathered
   late String? damage;
+  int opened = 0;
 
   final int owned; // 1 if player initiated attack | 0 if cpu initiated attack
 
@@ -49,6 +50,7 @@ class Attack {
     this.outcome,
     this.loot,
     this.damage,
+    this.opened = 0,
     required this.owned,
     required this.completed,
 
@@ -73,6 +75,7 @@ class Attack {
       'outcome': outcome,
       'loot': loot,
       'damage': damage,
+      'opened': opened,
       'owned': owned,
       'completed': completed,
     };
@@ -97,6 +100,7 @@ class Attack {
       outcome: map['outcome'],
       loot: map['loot'],
       damage: map['damage'],
+      opened: map['opened'],
       owned: map['owned'],
       completed: map['completed'],
 
@@ -125,6 +129,7 @@ class Attack {
           completed INTEGER,
           loot INTEGER,
           damage TEXT,
+          opened INTEGER,
           FOREIGN KEY (source_village_id) REFERENCES villages(id),
           FOREIGN KEY (destination_village_id) REFERENCES villages(id)
       )
@@ -152,36 +157,26 @@ class Attack {
   //// LOGIC FOR ATTACK ITSELF
 
   // function runs when the attack is sent out by player or enemy
-  static Future<void> createAttack(int sourceVillageId, int destinationVillageId, List<Map<String, dynamic>> sourceUnits) async{
+  static Future<void> createAttack(DateTime attackTime, int sourceVillageId, int destinationVillageId, List<Map<String, dynamic>> sourceUnits) async{
     final db = await DatabaseHelper.instance.database;
 
     Village sourceVillage = await Village.getVillageById(sourceVillageId);
     Village destinationVillage = await Village.getVillageById(destinationVillageId);
-    var currentTime = DateTime.now();
 
-    print("PRINTING SOURCE UNITS FOR SLOWEST SPEED!");
     print(sourceUnits);
 
     int slowestSpeed = calculateSlowestSpeed(sourceUnits);
-
-    print("test 1");
-
     double distanceBetweenVillages = calculateDistanceBetweenVillages(sourceVillage, destinationVillage);
-
-    print("test 4");
-
-    DateTime arrivalTime = _calculateArrivalTime(currentTime, distanceBetweenVillages, slowestSpeed);
-
-    print("test 5");
-
+    DateTime arrivalTime = _calculateArrivalTime(attackTime, distanceBetweenVillages, slowestSpeed);
 
     Attack attack = Attack(
       sourceVillageId: sourceVillageId,
       destinationVillageId: destinationVillageId,
-      startedAt: currentTime,
+      startedAt: attackTime,
       arrivedAt: arrivalTime,
       sourceUnitsBefore: serializeUnits(sourceUnits),
       owned: sourceVillage.owned,
+      opened: 0,
       completed: 0,
     );
 
@@ -194,10 +189,15 @@ class Attack {
 
   // runs when an attack is already sent out -> checks whether attack has already arrived and handles it
   static Future<void> handlePendingAttacks() async{
-    final db = await DatabaseHelper.instance.database;
+
+    print("running function handlePendingAttacks()");
 
     List<Attack> attacks = await getIncompleteAttacks();
 
+    final db = await DatabaseHelper.instance.database;
+
+
+    print("looping through all attacks");
     // loop through all attacks
     for(Attack attack in attacks){
 
@@ -226,6 +226,8 @@ class Attack {
             int unitId = unitData['unit_id'];
             int amountToAdd = unitData['amount'];
 
+            print("rawupdating db");
+
             await db.rawUpdate('''
               UPDATE units
               SET amount = amount + ?
@@ -237,6 +239,7 @@ class Attack {
           print('sourceUnitsAfter is null for attack id: ${attack.id}');
         }
 
+        print("updating the attack??");
         // update the attack as "completed 2"
         await db.update('attacks', {'completed': 2}, where: 'id = ?', whereArgs: [attack.id]);
 
@@ -376,7 +379,10 @@ class Attack {
 
       // Loop through each level check if we have enough catapults to decrease the level
       Settings? settings;
-      settings = await Settings.getSettingsFromDB();
+
+      Database db = await DatabaseHelper.instance.database;
+
+      settings = await Settings.getSettingsFromDB(db);
       final double costMultiplier = settings.costMultiplier;
 
       while (currentTownHallLevel > 0 && remainingCatapults >= pow(costMultiplier, currentTownHallLevel)) {
@@ -424,12 +430,15 @@ class Attack {
 
   Future<void> handleIncomingAttack() async {
 
+    print("running function handleIncomingAttack");
     // late String? destinationUnitsBefore;  // Serialized JSON representation of units and their amounts before the attack
 
     Village sourceVillage = await Village.getVillageById(sourceVillageId);
     Village destinationVillage = await Village.getVillageById(destinationVillageId);
 
     List<Unit> destinationUnitsList = await destinationVillage.getDefendingUnits();
+
+    final db = await DatabaseHelper.instance.database;
 
     // Create a map to keep track of unique row and unit combinations and their counts.
     Map<String, Map<String, dynamic>> uniqueRowUnits = {};
@@ -481,14 +490,16 @@ class Attack {
 
     int luckNumber = _generateLuck();
     double luckModifier = _calculateLuckModifier(luckNumber);
-
     luck = (luckModifier*100).round();
+
+    int attackerCasualties = totalOffence;
+    int defenderCasualties = totalDefence;
 
     totalOffence = (totalOffence * (1 + luckModifier)).round();
     totalDefence = (totalDefence * (1 - luckModifier)).round();
 
-    int attackerCasualties;
-    int defenderCasualties;
+    print('after luckmodifier: totalOffence: $totalOffence | totalDefence: $totalDefence');
+
 
     // the decay model function gives less casualties for the winner when he has an
     // advantage and more losses when it's nearly equal
@@ -505,13 +516,11 @@ class Attack {
 
     if (totalOffence == totalDefence) {
       attackerCasualties = totalOffence;
-      defenderCasualties = totalDefence;
     } else if (totalOffence > totalDefence) {
       // if player owns the source village and it wins, then outcome is 1
       if (owned == 1){
         outcome = 1;
       }
-      defenderCasualties = totalDefence;
       attackerCasualties = (totalDefence * exp(-k * (ratio - 1))).round();
     } else {
       // if player owns the destination village and it wins, then outcome is 1
@@ -572,7 +581,9 @@ class Attack {
 
       // Loop through each level check if we have enough catapults to decrease the level
       Settings? settings;
-      settings = await Settings.getSettingsFromDB();
+      Database db = await DatabaseHelper.instance.database;
+
+      settings = await Settings.getSettingsFromDB(db);
       final double costMultiplier = settings.costMultiplier;
 
       while (currentTownHallLevel > 0 && remainingCatapults >= pow(costMultiplier, currentTownHallLevel)) {
@@ -606,8 +617,9 @@ class Attack {
     if(sourceUnitsAfterList.last['unit'].name == 'king' && sourceUnitsAfterList.last['amount'] > 0 && destinationvillageTownhallLevel == 0){
       print("Village will be conquered");
       destinationVillage.changeOwner(0);
-      List villages = await Village.getEnemyVillages();
-      destinationVillage.changeName("Not your village anymore ${villages.length}");
+      List villages = await Village.getEnemyVillages(db);
+      String villageName = destinationVillage.name;
+      destinationVillage.changeName("Not your village anymore ${villages.length} ($villageName)");
     }
 
     updateToDb();
@@ -619,13 +631,18 @@ class Attack {
 
   //// helper functions
   static Future<List<Attack>> getIncompleteAttacks() async {
+
     final db = await DatabaseHelper.instance.database;
 
+    print("first raw db query");
     final List<Map<String, dynamic>> attackMaps = await db.query(
         'attacks',
         where: 'completed != ?',
         whereArgs: [2]
     );
+
+    print("first raw db query completed");
+
 
     // Convert the List<Map<String, dynamic> into a List<Attack>
     return List.generate(attackMaps.length, (i) {
@@ -701,7 +718,6 @@ class Attack {
     } else {
       // Distribute casualties proportionally to unit strength.
       for (Map<String, dynamic> unitMap in units) {
-        Unit unit = unitMap['unit'];
         int unitCasualties = (unitMap['amount'] * (casualties / totalStrength)).round();
         unitMap['amount'] = (unitMap['amount'] - unitCasualties).clamp(0, unitMap['amount']);
       }
@@ -709,6 +725,9 @@ class Attack {
   }
 
   static void _distributeDefendingPlayerCasualties(List<Map<String, dynamic>> units, int casualties, int totalStrength) {
+
+    print("running function _distributeDefendingPlayerCasualties()");
+
     units.sort((a, b) => b['unit'].row.compareTo(a['unit'].row));
     print('Sorted units by rows: $units');
 
@@ -728,16 +747,30 @@ class Attack {
     List<Map<String, dynamic>> currentRowUnits = [];
     int currentRowStrength = 0;
 
-    for (int i = 0; i < units.length; i++) {
+    for (int i = 0; i <= units.length; i++) {
+      print("************************* running for loop $i");
+
+      // last iteration should not get units[i] anymore
+      if(i == units.length){
+        print("last iteration $i");
+        int casualtiesTaken = _distributeCasualtiesAmongUnits(currentRowUnits, casualties, currentRowStrength);
+        casualties -= casualtiesTaken;
+        print('Distributed last row of casualties among current row units. Remaining casualties: $casualties');
+        break;
+      }
+
       Map<String, dynamic> unitMap = units[i];
       Unit unit = unitMap['unit'];
+
+      print("for unit ${unit.name} on row ${unit.row}");
 
       if (unit.row == currentRow) {
         currentRowUnits.add(unitMap);
         currentRowStrength += (unit.defence * unitMap['amount']).round();
-        print('Added unit ${unit} to current row units. Current row strength is now $currentRowStrength.');
+        print('Added unit ${unit.name} to current row units. Current row strength is now $currentRowStrength.');
       }
 
+      // This action is performed for the row of units from the previous iteration of the loop
       if (unit.row != currentRow || i == units.length - 1) {
         int casualtiesTaken = _distributeCasualtiesAmongUnits(currentRowUnits, casualties, currentRowStrength);
 
@@ -775,7 +808,6 @@ class Attack {
       double unitCasualtiesPercentage = unitStrength / totalStrength;
       int unitCasualties = (casualties * unitCasualtiesPercentage).round();
 
-      print('----');
       print('Processing unit with strength: $unitStrength');
       print('Unit casualty percentage: $unitCasualtiesPercentage');
       print('Calculated casualties for this unit: $unitCasualties');

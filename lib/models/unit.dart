@@ -116,7 +116,7 @@ class Unit {
     final db = await DatabaseHelper.instance.database;
 
     Settings? settings;
-    settings = await Settings.getSettingsFromDB();
+    settings = await Settings.getSettingsFromDB(db);
     final double costMultiplier = settings.costMultiplier;
 
     // Increase its level by 1

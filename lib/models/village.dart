@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:habit/models/building.dart';
 import 'package:habit/models/tile.dart';
 import 'package:habit/models/unit.dart';
+import 'package:sqflite/sqflite.dart';
 import '../services/database_helper.dart';
 import 'dart:math';
 
@@ -167,8 +168,8 @@ class Village {
 
     // Add units entries with reference to this village to the units table
     Unit(villageId: villageId, name: "spearman", image: "assets/spearman.png", level: 1, initialOffence: 10, initialDefence: 10, offence: 10, defence: 10, amount: 5, initialCost: 50, cost: 50, speed: 1).insertToDb();
-    Unit(villageId: villageId, name: "wizard", image: "assets/wizard.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 4, initialCost: 80, cost: 80, speed: 1).insertToDb();
-    Unit(villageId: villageId, name: "catapult", image: "assets/catapult.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 100, initialCost: 300, cost: 300, speed: 1).insertToDb();
+    Unit(villageId: villageId, name: "wizard", image: "assets/wizard.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 4, initialCost: 80, cost: 80, speed: 10).insertToDb();
+    Unit(villageId: villageId, name: "catapult", image: "assets/catapult.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 1, initialCost: 300, cost: 300, speed: 1).insertToDb();
     Unit(villageId: villageId, name: "king", image: "assets/king.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 1, initialCost: 1000, cost: 1000, speed: 1).insertToDb();
 
     // Add units to tiles for defending testing
@@ -320,8 +321,7 @@ class Village {
     return level;
   }
 
-  Future<void> upgradeBuildingLevel(String buildingName) async {
-    final db = await DatabaseHelper.instance.database;
+  Future<void> upgradeBuildingLevel(Database db, String buildingName) async {
 
     // First, retrieve the current level.
     int? currentLevel = await getBuildingLevel(buildingName);
@@ -628,8 +628,7 @@ class Village {
     return maps;
   }
 
-  static Future<List<Village>> getEnemyVillages() async {
-    final db = await DatabaseHelper.instance.database;
+  static Future<List<Village>> getEnemyVillages(Database db) async {
 
     final List<Map<String, dynamic>> maps = await db.rawQuery('''
     SELECT 
@@ -769,8 +768,7 @@ class Village {
 
 
   // EVENTS
-  static Future<Map> spawnVillage() async {
-    final db = await DatabaseHelper.instance.database;
+  static Future<Map> spawnVillage(Database db) async {
 
     //// get total number of villages to properly name the new one
     final result = await db.rawQuery('''
@@ -826,12 +824,14 @@ class Village {
 
   Future<String> updateEnemyBuilding() async {
 
+    final db = await DatabaseHelper.instance.database;
+
     var random = Random();
     var randomNumber = random.nextInt(2); // Generates a random integer from 1 to 3.
     print(randomNumber);
     List buildingTypes = ['town_hall', 'farm'];
 
-    await upgradeBuildingLevel(buildingTypes[randomNumber]);
+    await upgradeBuildingLevel(db, buildingTypes[randomNumber]);
 
     return buildingTypes[randomNumber];
   }

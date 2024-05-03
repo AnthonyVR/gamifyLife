@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:habit/villageAppBar.dart';
+import 'package:sqflite/sqflite.dart';
 import 'models/settings.dart';
 import 'models/village.dart';
+import 'package:habit/services/database_helper.dart';
+
 
 class FarmView extends StatefulWidget {
 
@@ -84,8 +87,9 @@ class _FarmViewState extends State<FarmView> {
                       onPressed: () {
                         if ((index) == currentFarmLevel) {
                           // Only allow upgrade if the level is 1 greater than the current farm level
-                          setState(() {
-                            village?.upgradeBuildingLevel('farm');
+                          setState(() async {
+                            final db = await DatabaseHelper.instance.database;
+                            village?.upgradeBuildingLevel(db, 'farm');
                             currentFarmLevel = index + 1; // Placeholder logic, you can replace with db update logic.
                           });
                         }
@@ -102,7 +106,9 @@ class _FarmViewState extends State<FarmView> {
   }
 
   void _loadSettings() async {
-    _settings = await Settings.getSettingsFromDB();
+    Database db = await DatabaseHelper.instance.database;
+
+    _settings = await Settings.getSettingsFromDB(db);
     setState(() {});
   }
 

@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:workmanager/workmanager.dart';
+//import 'package:workmanager/workmanager.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:habit/event_view.dart';
 import 'package:habit/habit_list.dart';
@@ -29,35 +29,43 @@ import 'models/village.dart';
 View -> Tool Windows -> App Inspection -> Database inspector!!!
  */
 
-@pragma('vm:entry-point') // Mandatory if the App is obfuscated or using Flutter 3.1+
-void callbackDispatcher() {
-
-  print("RUNNING callbackDispatcher");
-
-  Workmanager().executeTask((task, inputData) {
-    print("Background task: $task"); // task name is useful for debugging
-
-    if (task == 'calculateEventsTask') {
-      print("TASK ==  calculateEventsTask");
-      calculateEvents(); // Your function to perform background tasks
-    }
-
-    return Future.value(true); // return true from the callback, indicating the task is successful.
-  });
-}
+// @pragma('vm:entry-point') // Mandatory if the App is obfuscated or using Flutter 3.1+
+// void callbackDispatcher() {
+//
+//   print("RUNNING callbackDispatcher");
+//
+//   Workmanager().executeTask((task, inputData) async{
+//     print("Background task: $task"); // task name is useful for debugging
+//
+//     final db = await DatabaseHelper.instance.database;
+//
+//     print("obtained DB object");
+//
+//     if (task == 'calculateEventsTask') {
+//       print("TASK ==  calculateEventsTask");
+//       calculateEvents(db); // Your function to perform background tasks
+//     }
+//
+//     return Future.value(true); // return true from the callback, indicating the task is successful.
+//   });
+// }
 
 Future<void> calculateEvents() async {
 
   print("RUNNING CALCULATEEVENTS updated");
   try {
 
-    print("wooooooooooooow");
+    print("wooooooooooooowieeee");
     // Add game_opened entry
     Event gameOpened = Event(eventType: 'game_opened', timestamp: DateTime.now(), info: {});
+    print("wooooooooooooow2");
+    print("wooooooooooooow3");
     await Attack.handlePendingAttacks();
+    print("wooooooooooooow4");
     var eventsOccurred = await gameOpened.calculateEvents();
+    print("wooooooooooooow5");
     await gameOpened.insertToDb(); // Ensure this is awaited if it's async
-    print("RUN CALCULATEEVENTS done");
+
 
   } catch (e) {
     print('Error handling background task: $e');
@@ -72,23 +80,22 @@ void main() async{
 
   WidgetsFlutterBinding.ensureInitialized();
 
-  print('INITIALLY RUNNING MAIN FUNCTION AND WORKMANAGER.INITIALIZE');
 
-  await Workmanager().initialize(
-      callbackDispatcher, // The top-level function defined above
-      isInDebugMode: true // Set to false in production
-  );
-  print("workmanager initialized");
-
+  // await Workmanager().initialize(
+  //     callbackDispatcher, // The top-level function defined above
+  //     isInDebugMode: true // Set to false in production
+  // );
+  // print("workmanager initialized");
+  //
   // Workmanager().registerOneOffTask("task-identifier", "simpleTask");
-  // print("workmanager onOfftask done");
-
+  // print("workmanager onOfftask registered");
+  //
   // Workmanager().registerPeriodicTask(
   //   "1", // unique task id
   //   "calculateEventsTask", // task name
   //   frequency: Duration(minutes: 15), // frequency of task execution
   // );
-  print("workmanager periodictask initialized");
+  // print("workmanager periodictask registered");
 
   // Initialize FFI
   sqfliteFfiInit();
@@ -268,41 +275,38 @@ class _HomePageState extends State<HomePage> {
                         await _goToNextDate();
                       },
                     ),
-                    IconButton(
-                      icon: Icon(Icons.access_alarm),
-                      onPressed: () async {
-                        await Workmanager().initialize(
-                            callbackDispatcher, // The top-level function defined above
-                            isInDebugMode: true // Set to false in production
-                        );
-                        print("Trying to schedule an immediate one-time task");
-                        await Workmanager().registerOneOffTask(
-                          "1",  // Ensure this ID is unique if you also have periodic tasks scheduled.
-                          "calculateEventsTask",  // This should match the task name in the callbackDispatcher.
-                          initialDelay: Duration(seconds: 5),  // Short delay to simulate immediate execution
-                          inputData: {'key': 'value'},  // Optional: Data you want to pass to the task.
-                        );
-                      },
-                    ),
-
                     // IconButton(
                     //   icon: Icon(Icons.access_alarm),
                     //   onPressed: () async {
-                    //     //await calculateEvents();
-                    //     print("trying to run ExecuteTask method");
-                    //
-                    //     Workmanager().executeTask((task, inputData) {
-                    //       print("Background task: $task"); // task name is useful for debugging
-                    //
-                    //       if (task == 'calculateEventsTask') {
-                    //         print("TASK ==  calculateEventsTask");
-                    //         calculateEvents(); // Your function to perform background tasks
-                    //       }
-                    //
-                    //       return Future.value(true); // return true from the callback, indicating the task is successful.
-                    //     });
+                    //     print("Trying to schedule an immediate one-time task");
+                    //     await Workmanager().registerOneOffTask(
+                    //       "1",  // Ensure this ID is unique if you also have periodic tasks scheduled.
+                    //       "calculateEventsTask",  // This should match the task name in the callbackDispatcher.
+                    //       initialDelay: Duration(seconds: 5),  // Short delay to simulate immediate execution
+                    //       inputData: {'key': 'value'},  // Optional: Data you want to pass to the task.
+                    //     );
                     //   },
                     // ),
+                    IconButton(
+                      icon: Icon(Icons.access_alarm),
+                      onPressed: () async {
+                        print("running calculateEvents() from alarm button");
+                        final db = await DatabaseHelper.instance.database;
+                        await calculateEvents();
+                        // print("trying to run ExecuteTask method");
+                        //
+                        // Workmanager().executeTask((task, inputData) {
+                        //   print("Background task: $task"); // task name is useful for debugging
+                        //
+                        //   if (task == 'calculateEventsTask') {
+                        //     print("TASK ==  calculateEventsTask");
+                        //     calculateEvents(); // Your function to perform background tasks
+                        //   }
+                        //
+                        //   return Future.value(true); // return true from the callback, indicating the task is successful.
+                        // });
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -406,10 +410,23 @@ class _HomePageState extends State<HomePage> {
               },
             ),
             ListTile(
-              title: Text('Rebuild ALL initial database contents'),
+              title: Text('Rebuild ALL initial database contents (not working)'),
+              onTap: () {
+                // if(GlobalVariables.appMode == 'test' || 1 == 1){
+                //   dbHelper.createInitialDatabase();
+                //   setState(() {
+                //   });
+                // }
+                // else {
+                //   print("cannot remove production data");
+                // }
+              },
+            ),
+            ListTile(
+              title: Text('Remove AND Rebuild ALL initial database contents'),
               onTap: () {
                 if(GlobalVariables.appMode == 'test' || 1 == 1){
-                  dbHelper.createInitialDatabase();
+                  dbHelper.clearAndRebuildDatabase();
                   setState(() {
                   });
                 }
@@ -419,10 +436,26 @@ class _HomePageState extends State<HomePage> {
               },
             ),
             ListTile(
-              title: Text('Remove AND Rebuild ALL initial database contents'),
-              onTap: () {
+              title: Text('Trigger incoming attack'),
+              onTap: () async {
                 if(GlobalVariables.appMode == 'test' || 1 == 1){
-                  dbHelper.clearAndRebuildDatabase();
+
+                  Village village = await Village.getVillageById(3);
+                  List<Unit> enemySourceUnitsList = await village.getAvailableUnits();
+
+                  if(enemySourceUnitsList.isNotEmpty){
+
+                    List<Map<String, dynamic>> enemySourceUnits = enemySourceUnitsList.map((unit) {
+                      return {
+                        'unit': unit,
+                        'amount': unit.amount,
+                      };
+                    }).toList();
+
+                    Attack.createAttack(DateTime.now(), 3, 1, enemySourceUnits);
+
+
+                  }
                   setState(() {
                   });
                 }
