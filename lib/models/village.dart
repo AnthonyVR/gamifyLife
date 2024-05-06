@@ -860,7 +860,7 @@ class Village {
     // Calculate and print the probability for each unit
     for (var i = 0; i < unitList.length; i++) {
       double probability = weights[i] / totalWeight;
-      print('The odds of ${unitList[i].name} being leveled up are ${probability * 100}%');
+      print('The odds of ${unitList[i].name} being created are ${probability * 100}%');
     }
     ////
 

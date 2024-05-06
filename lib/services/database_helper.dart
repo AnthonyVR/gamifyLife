@@ -6,6 +6,9 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import '../config/globals.dart';
 
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+
 // Import the DAOs
 import '../dao/habit_dao.dart';
 import '../dao/day_dao.dart';
@@ -128,7 +131,14 @@ class DatabaseHelper {
   // Open the database
   initDatabase() async {
 
+    if (_database != null) {
+      await _database!.close();  // Close the existing database connection
+      _database = null;          // Set the _database to null to ensure reinitialization
+    }
+
     String appMode = GlobalVariables.appMode; // test | prod
+
+    String path = join(await getDatabasesPath(), "${appMode}_$_databaseName");
 
     if(appMode == 'test') {
       print("App running in test mode");
@@ -146,8 +156,8 @@ class DatabaseHelper {
       print("invalid app mode");
     }
 
-    String path = join(await getDatabasesPath(), _databaseName);
-    return await openDatabase(path, version: _databaseVersion, onCreate: _onCreate);
+    _database = await openDatabase(path, version: _databaseVersion, onCreate: _onCreate);
+    return _database!;
   }
 
   Future _onCreate(Database db, int version) async {
@@ -156,6 +166,50 @@ class DatabaseHelper {
 
     await createInitialDatabase(db);
 
+  }
+
+  Future<void> backupDatabase(int day) async {
+    // Get the current database path
+    String dbPath = join(await getDatabasesPath(), "${GlobalVariables.appMode}_$_databaseName");
+
+    // Get a directory to store the backup. Using the documents directory for simplicity
+    Directory documentsDirectory = await getApplicationDocumentsDirectory();
+    String backupPath = join(documentsDirectory.path, "${GlobalVariables.appMode}_${_databaseName}_$day.backup");
+
+    // Copy the file
+    File originalFile = File(dbPath);
+    await originalFile.copy(backupPath);
+
+    print("Backup created at $backupPath");
+  }
+
+  Future<String> getBackupPath(int day) async {
+    Directory documentsDirectory = await getApplicationDocumentsDirectory();
+    return join(documentsDirectory.path, "${GlobalVariables.appMode}_${_databaseName}_$day.backup");
+  }
+
+  Future<String> restoreDatabaseFromBackup(int day) async {
+
+    String status = "Failed to restore";
+    try {
+      String backupPath = await getBackupPath(day);
+      File backupFile = File(backupPath);
+
+      if (await backupFile.exists()) {
+        String dbPath = join(await getDatabasesPath(), "${GlobalVariables.appMode}_$_databaseName");
+        await backupFile.copy(dbPath);
+
+        print("Database ${backupPath} has been restored from backup.");
+        status = "restore successful!";
+      } else {
+        status = "Backup file ${backupPath} does not exist.";
+        print("Backup file ${backupPath} does not exist.");
+      }
+    } catch (e) {
+      print("Failed to restore the database: $e");
+    }
+
+    return status;
   }
 
   Future createInitialDatabase(Database db) async {
