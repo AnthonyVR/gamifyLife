@@ -168,9 +168,11 @@ class Village {
 
     // Add units entries with reference to this village to the units table
     Unit(villageId: villageId, name: "spearman", image: "assets/spearman.png", level: 1, initialOffence: 10, initialDefence: 10, offence: 10, defence: 10, amount: 5, initialCost: 50, cost: 50, speed: 1).insertToDb();
-    Unit(villageId: villageId, name: "wizard", image: "assets/wizard.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 4, initialCost: 80, cost: 80, speed: 10).insertToDb();
-    Unit(villageId: villageId, name: "catapult", image: "assets/catapult.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 1, initialCost: 300, cost: 300, speed: 1).insertToDb();
-    Unit(villageId: villageId, name: "king", image: "assets/king.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 1, initialCost: 1000, cost: 1000, speed: 1).insertToDb();
+    Unit(villageId: villageId, name: "wizard", image: "assets/wizard.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, initialCost: 80, cost: 80, speed: 10).insertToDb();
+    Unit(villageId: villageId, name: "spy", image: "assets/spy.png", level: 1, initialOffence: 0, initialDefence: 0, offence: 0, defence: 5, amount: 10, initialCost: 30, cost: 30, speed: 1).insertToDb();
+    Unit(villageId: villageId, name: "catapult", image: "assets/catapult.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, initialCost: 300, cost: 300, speed: 1).insertToDb();
+    Unit(villageId: villageId, name: "king", image: "assets/king.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, initialCost: 1000, cost: 1000, speed: 1).insertToDb();
+
 
     // Add units to tiles for defending testing
     Tile(villageId: villageId, rowNum: 16, columnNum: 4, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner

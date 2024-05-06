@@ -24,6 +24,7 @@ class Attack {
   late int? outcome; // 1 if player wins | 0 if cpu wins
   late int? loot; // Amount of loot gathered
   late String? damage;
+  late String? espionage;
   int opened = 0;
 
   final int owned; // 1 if player initiated attack | 0 if cpu initiated attack
@@ -50,6 +51,8 @@ class Attack {
     this.outcome,
     this.loot,
     this.damage,
+    this.espionage,
+
     this.opened = 0,
     required this.owned,
     required this.completed,
@@ -75,6 +78,7 @@ class Attack {
       'outcome': outcome,
       'loot': loot,
       'damage': damage,
+      'espionage': espionage,
       'opened': opened,
       'owned': owned,
       'completed': completed,
@@ -100,6 +104,7 @@ class Attack {
       outcome: map['outcome'],
       loot: map['loot'],
       damage: map['damage'],
+      espionage: map['espionage'],
       opened: map['opened'],
       owned: map['owned'],
       completed: map['completed'],
@@ -129,6 +134,7 @@ class Attack {
           completed INTEGER,
           loot INTEGER,
           damage TEXT,
+          espionage TEXT,
           opened INTEGER,
           FOREIGN KEY (source_village_id) REFERENCES villages(id),
           FOREIGN KEY (destination_village_id) REFERENCES villages(id)
@@ -255,13 +261,14 @@ class Attack {
 
     List destinationUnitsList = await destinationVillage.getUnits();
 
-
     List<Map<String, dynamic>> destinationUnitsDecoded = destinationUnitsList.map((unit) {
       return {
         'unit': unit,
+        'name': unit.name,
         'amount': unit.amount,
       };
     }).toList();
+
 
     List<dynamic> sourceUnitsBeforeList = jsonDecode(sourceUnitsBefore);
 
@@ -271,11 +278,34 @@ class Attack {
       var unit = await Unit.getUnitById(unitId);
       sourceUnitsBeforeDecoded.add({
         'unit': unit,
+        'name': unitMap['name'],
         'amount': unitMap['amount'],
       });
     }
 
     destinationUnitsBefore = serializeUnits(destinationUnitsDecoded);
+
+    List<dynamic> destinationUnitsBeforeList = [];
+    if(destinationUnitsBefore != null){
+      destinationUnitsBeforeList = jsonDecode(destinationUnitsBefore!);
+    }
+
+    print("11. sourceunitsbeforelist:");
+    print(sourceUnitsBeforeList);
+
+    print("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO");
+
+    print("21.destinationUnitsList");
+    print(destinationUnitsList);
+
+    print("22.destinationUnitsDecoded");
+    print(destinationUnitsDecoded);
+
+    print("23. destinationUnitsBefore");
+    print(destinationUnitsBefore);
+
+    print("24. destinationUnitsBeforeList");
+    print(destinationUnitsBeforeList);
 
     int totalOffence = _calculateStrength(sourceUnitsBeforeDecoded, 'offence');
     int totalDefence = _calculateStrength(destinationUnitsDecoded, 'defence');
@@ -295,6 +325,9 @@ class Attack {
     totalOffence = (totalOffence * (1 + luckModifier)).round();
     totalDefence = (totalDefence * (1 - luckModifier)).round();
 
+    print("total offense after luck: ${totalOffence}");
+    print("total defense after luck: ${totalDefence}");
+
     int attackerCasualties;
     int defenderCasualties;
 
@@ -310,10 +343,12 @@ class Attack {
 
     const k = 1.0; // Adjust this constant based on game balancing needs
 
+    outcome = 0;
     if (totalOffence == totalDefence) {
       attackerCasualties = totalOffence;
       defenderCasualties = totalDefence;
     } else if (totalOffence > totalDefence) {
+      print("attacker wins");
       // if player owns the source village and it wins, then outcome is 1
       if (owned == 1){
         outcome = 1;
@@ -321,6 +356,7 @@ class Attack {
       defenderCasualties = totalDefence;
       attackerCasualties = (totalDefence * exp(-k * (ratio - 1))).round();
     } else {
+      print("defender wins");
       // if player owns the destination village and it wins, then outcome is 1
       if (owned == 0){
         outcome = 1;
@@ -330,19 +366,22 @@ class Attack {
     }
 
     List<Map<String, dynamic>> sourceUnitsAfterList = List.from(sourceUnitsBeforeDecoded);
+
+    print("14. sourceunitsafterlist");
+    print(sourceUnitsAfterList);
+    //List<Map<String, dynamic>> sourceUnitsAfterList = [];
+    //sourceUnitsAfterList = jsonDecode(sourceUnitsAfter!);
     List<Map<String, dynamic>> destinationUnitsAfterList = List.from(destinationUnitsDecoded);
+    print("24. destinationUnitsAfterList");
+    print(destinationUnitsAfterList);
 
     _distributeCasualties(sourceUnitsAfterList, attackerCasualties, totalOffence);
     _distributeCasualties(destinationUnitsAfterList, defenderCasualties, totalDefence);
 
-    print('1.sourceunitsbeforedecoded');
-    print(sourceUnitsBeforeDecoded);
-    print(sourceUnitsAfterList);
-    print("-------------------");
-    print(destinationUnitsBefore);
-    print(destinationUnitsAfterList);
-
     sourceUnitsAfter = serializeUnits(sourceUnitsAfterList);
+    print("15. sourceunitsafter");
+    print(sourceUnitsAfter);
+
     destinationUnitsAfter = serializeUnits(destinationUnitsAfterList);
 
     int slowestReturnSpeed = calculateSlowestSpeed(sourceUnitsAfterList);
@@ -355,12 +394,6 @@ class Attack {
 
     print("removing units from defending enemy vilage");
     print(destinationUnitsAfterList);
-
-    // remove the casualties from the enemy village
-    for (var unitData in destinationUnitsAfterList) {
-      unitData['unit'].updateAmount(unitData['amount']);
-    }
-
 
 
     // Functionality for damaging a village
@@ -407,7 +440,117 @@ class Attack {
       }
     }
 
-      //await destinationVillage.updateBuildingLevel("town_hall", 10);
+
+    // Functionality for spies
+    print("Checking spy interactions...");
+
+    // Counting spies in the attacking and defending armies
+    int attackerSpies = 0;
+    int defenderSpies = 0;
+
+    print("printing sourceunitsbefore for spy testing");
+    print(sourceUnitsBeforeList);
+
+    for (var unitData in sourceUnitsBeforeList) {
+      print('unitdata');
+      print(unitData);
+      if (unitData['name'] == 'spy') {
+        attackerSpies += unitData['amount'] as int;
+      }
+    }
+
+    print("printing destinationUnitsBefore for spy testing");
+    print(destinationUnitsBeforeList);
+
+    for (var unitData in destinationUnitsBeforeList) {
+      if (unitData['name'] == 'spy') {
+        print("defending spy detected");
+        defenderSpies += unitData['amount'] as int;
+      }
+    }
+
+    print("Attacker has $attackerSpies spies.");
+    print("Defender has $defenderSpies spies.");
+
+    print("sourceUnitsAfterList");
+    print(sourceUnitsAfterList);
+
+    if (attackerSpies > defenderSpies) {
+      // Attacker spies outnumber defender spies
+      print("Attacker's spies have neutralized the defenders' spies.1");
+      outcome = 1;
+      // Set all defender spies' amounts to 0
+      for (var unitData in destinationUnitsAfterList) {
+        if (unitData['name'] == 'spy') {
+          unitData['amount'] = 0;
+        }
+      }
+      for (var unitData in sourceUnitsAfterList) {
+        if (unitData['name'] == 'spy') {
+          unitData['amount'] = attackerSpies - defenderSpies;
+          print('attacking amount of spies left:');
+          print(unitData['amount']);
+        }
+      }
+
+      int? townhallLevel = await destinationVillage.getBuildingLevel("town_hall");
+      int? barracksLevel = await destinationVillage.getBuildingLevel("barracks");
+      int? farmLevel = await destinationVillage.getBuildingLevel("farm");
+      int? coins = destinationVillage.coins;
+
+      Map<String, int> espionageMap = {
+        "townhall": townhallLevel!,
+        "barracks": barracksLevel!,
+        "farm": farmLevel!,
+        "coins": coins};
+
+      espionage = jsonEncode(espionageMap);
+      print('test1');
+
+
+    } else if (defenderSpies > attackerSpies) {
+      // Defender spies outnumber attacker spies
+      print("Defender's spies have neutralized the attackers' spies.1");
+
+      print("destinationUnitsAfterList");
+      print(destinationUnitsAfterList);
+
+      for (var unitData in destinationUnitsAfterList) {
+        if (unitData['name'] == 'spy') {
+          unitData['amount'] = defenderSpies - attackerSpies;
+          print('defending amount of spies left:');
+          print(unitData['amount']);
+        }
+      }
+      // Set all attacker spies' amounts to 0
+      for (var unitData in sourceUnitsAfterList) {
+        if (unitData['name'] == 'spy') {
+          unitData['amount'] = 0;
+        }
+      }
+
+    } else {
+      // Equal number of spies, or no spies at all
+      print("Both sides' spies have neutralized each other.");
+      // Optionally neutralize all spies on both sides
+      for (var unitData in sourceUnitsAfterList) {
+        if (unitData['name'] == 'spy') {
+          unitData['amount'] = 0;
+        }
+      }
+      for (var unitData in destinationUnitsAfterList) {
+        if (unitData['name'] == 'spy') {
+          unitData['amount'] = 0;
+        }
+      }
+    }
+
+    print("Spy interaction completed.");
+
+    // remove the casualties from the enemy village
+    for (var unitData in destinationUnitsAfterList) {
+      unitData['unit'].updateAmount(unitData['amount']);
+    }
 
 
     // Functionality for conquering a village
@@ -422,11 +565,16 @@ class Attack {
       destinationVillage.changeOwner(1);
     }
 
+    sourceUnitsAfter = serializeUnits(sourceUnitsAfterList);
+    destinationUnitsAfter = serializeUnits(destinationUnitsAfterList);
+
     updateToDb();
 
     print("------------- END OF FUNCTION ----------------");
 
   }
+
+
 
   Future<void> handleIncomingAttack() async {
 
@@ -467,6 +615,7 @@ class Attack {
       var unit = await Unit.getUnitById(unitId);
       sourceUnitsBeforeDecoded.add({
         'unit': unit,
+        'name': unitMap['name'],
         'amount': unitMap['amount'],
       });
     }
@@ -681,7 +830,7 @@ class Attack {
 
   static DateTime _calculateArrivalTime(DateTime currentTime, double distance, int slowestSpeed) {
     final attackDuration = (distance * slowestSpeed).round();
-    return currentTime.add(Duration(minutes: attackDuration));
+    return currentTime.add(Duration(seconds: attackDuration)); //CHANGE BACK TO MINUTES
   }
 
   static int _generateLuck() {
@@ -718,8 +867,10 @@ class Attack {
     } else {
       // Distribute casualties proportionally to unit strength.
       for (Map<String, dynamic> unitMap in units) {
-        int unitCasualties = (unitMap['amount'] * (casualties / totalStrength)).round();
-        unitMap['amount'] = (unitMap['amount'] - unitCasualties).clamp(0, unitMap['amount']);
+        if(unitMap['name'] != 'spy'){
+          int unitCasualties = (unitMap['amount'] * (casualties / totalStrength)).round();
+          unitMap['amount'] = (unitMap['amount'] - unitCasualties).clamp(0, unitMap['amount']);
+        }
       }
     }
   }
@@ -842,6 +993,7 @@ class Attack {
   static String serializeUnits(List<Map> units) {
     return jsonEncode(units.map((unitMap) => {
       'unit_id': unitMap['unit'].id,
+      'name': unitMap['unit'].name,
       'amount': unitMap['amount']
     }).toList());
   }
