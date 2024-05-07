@@ -249,6 +249,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       // choose here full color package of main screen
       backgroundColor: Colors.black, //Color(0xFFb87a3d),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked, // Default FAB location
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(50),
         child: AppBar(
@@ -256,7 +257,7 @@ class _HomePageState extends State<HomePage> {
           title: Row(
             children: [
               Expanded(
-                flex: 6,  // this will allocate 3 parts of the space to this child
+                flex: 8,  // this will allocate 3 parts of the space to this child
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
@@ -285,42 +286,42 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
               ),
-              Expanded(
-                flex: 2,  // this will allocate 1 part of the space to this child
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: FutureBuilder<double>(
-                    future: Village.getTotalRewardFactor(),
-                    builder: (BuildContext context, AsyncSnapshot<double> snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return CircularProgressIndicator();  // show loading spinner while waiting
-                      } else if (snapshot.hasError) {
-                        return Text('Error: ${snapshot.error}');  // show error message if there's any error
-                      } else {
-                        return Text('${snapshot.data}');  // display total difficultys when data is available
-                      }
-                    },
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 2,  // this will allocate 1 part of the space to this child
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: FutureBuilder<int>(
-                    future: dbHelper.habitHistoryDao.getTotalDifficultysForToday(date, weekday),
-                    builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return CircularProgressIndicator();  // show loading spinner while waiting
-                      } else if (snapshot.hasError) {
-                        return Text('Error: ${snapshot.error}');  // show error message if there's any error
-                      } else {
-                        return Text('${snapshot.data}');  // display total difficultys when data is available
-                      }
-                    },
-                  ),
-                ),
-              ),
+              // Expanded(
+              //   flex: 1,  // this will allocate 1 part of the space to this child
+              //   child: Align(
+              //     alignment: Alignment.centerRight,
+              //     child: FutureBuilder<double>(
+              //       future: Village.getTotalRewardFactor(),
+              //       builder: (BuildContext context, AsyncSnapshot<double> snapshot) {
+              //         if (snapshot.connectionState == ConnectionState.waiting) {
+              //           return CircularProgressIndicator();  // show loading spinner while waiting
+              //         } else if (snapshot.hasError) {
+              //           return Text('Error: ${snapshot.error}');  // show error message if there's any error
+              //         } else {
+              //           return Text('${snapshot.data}');  // display total difficultys when data is available
+              //         }
+              //       },
+              //     ),
+              //   ),
+              // ),
+              // Expanded(
+              //   flex: 1,  // this will allocate 1 part of the space to this child
+              //   child: Align(
+              //     alignment: Alignment.centerRight,
+              //     child: FutureBuilder<int>(
+              //       future: dbHelper.habitHistoryDao.getTotalDifficultysForToday(date, weekday),
+              //       builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
+              //         if (snapshot.connectionState == ConnectionState.waiting) {
+              //           return CircularProgressIndicator();  // show loading spinner while waiting
+              //         } else if (snapshot.hasError) {
+              //           return Text('Error: ${snapshot.error}');  // show error message if there's any error
+              //         } else {
+              //           return Text('${snapshot.data}');  // display total difficultys when data is available
+              //         }
+              //       },
+              //     ),
+              //   ),
+              // ),
             ],
           ),
         ),
@@ -630,19 +631,115 @@ class _HomePageState extends State<HomePage> {
           return CircularProgressIndicator();
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.orange,
-        onPressed: () async {  // Note the async keyword
-          await showDialog(  // Note the await keyword
-            context: context,
-            builder: (context) {
-              return HabitCreator(date: formattedDate);
-            },
-          );
-          // After the dialog is dismissed, refresh the state
-          setState(() {});
-        },
-        child: Icon(Icons.add),
+      floatingActionButton: Stack(
+        children: <Widget>[
+          Positioned(
+            right: 20,
+            bottom: 100,
+            child: FloatingActionButton(
+              backgroundColor: Colors.orange,
+              onPressed: () async {
+                await showDialog(
+                  context: context,
+                  builder: (context) {
+                    return HabitCreator(date: formattedDate);
+                  },
+                );
+                // After the dialog is dismissed, refresh the state
+                setState(() {});
+              },
+              child: Icon(Icons.add),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            bottom: 80,
+            child: Container(
+              width: 160,  // Define the width of the button
+              height: 48,  // Define the height of the button
+              child: ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        content: Align(
+                          alignment: Alignment.topCenter,
+                          child: FutureBuilder<double>(
+                            future: Village.getTotalRewardFactor(),
+                            builder: (BuildContext context, AsyncSnapshot<double> snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return CircularProgressIndicator();
+                              } else if (snapshot.hasError) {
+                                return Text('Error: ${snapshot.error}');
+                              } else {
+                                return Text('${snapshot.data}');
+                              }
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),  // Rounded corners
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,  // Use the minimal space for the row content
+                  children: [
+                    SvgPicture.asset(
+                      'assets/coins.svg',
+                      height: 20,
+                      width: 20,
+                    ),
+                    SizedBox(width: 6),  // Space between the icon and text
+                    FutureBuilder<int>(
+                      future: dbHelper.habitHistoryDao.getTotalDifficultysForToday(date, weekday),
+                      builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return CircularProgressIndicator();  // Show loading spinner while waiting
+                        } else if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}', style: TextStyle(color: Colors.white));  // Show error message if there's any error
+                        } else {
+                          return Text(
+                            '${snapshot.data}',  // Display your data
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,  // Set the font size
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                    SizedBox(width: 10),  // Space between the icon and text
+                    FutureBuilder<double>(
+                      future: Village.getTotalRewardFactor(),
+                      builder: (BuildContext context, AsyncSnapshot<double> snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return CircularProgressIndicator();
+                        } else if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}');
+                        } else {
+                          return Text(
+                            'x   ${snapshot.data}',  // Display your data
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 24,  // Set the font size
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: BottomAppBar(
         color: Colors.white10,
@@ -762,7 +859,7 @@ class _HomePageState extends State<HomePage> {
                             builder: (context) => MapView(),
                             fullscreenDialog: true, // make the page full screen
                           ),
-                        );
+                        ); 
                       },
                       child: Image.asset(
                         'assets/map.png',

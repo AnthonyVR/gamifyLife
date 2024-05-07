@@ -19,6 +19,7 @@ class Unit {
   int offence;
   int defence;
   final int speed;
+  int loot;
   int amount;
 
   var row;
@@ -36,6 +37,7 @@ class Unit {
     required this.offence,
     required this.defence,
     required this.speed,
+    required this.loot,
     required this.amount
   });
 
@@ -55,6 +57,7 @@ class Unit {
       'offence': offence,
       'defence': defence,
       'speed': speed,
+      'loot': loot,
       'amount': amount,
     };
   }
@@ -78,6 +81,7 @@ class Unit {
       offence: map['offence'],
       defence: map['defence'],
       speed: map['speed'],
+      loot: map['loot'],
       amount: map['amount'],
     );
   }
@@ -98,6 +102,7 @@ class Unit {
           offence INTEGER NOT NULL,
           defence INTEGER NOT NULL,
           speed INTEGER NOT NULL,
+          loot INTEGER NOT NULL,
           amount INTEGER NOT NULL,
           FOREIGN KEY (village_id) REFERENCES villages(id)
       )
