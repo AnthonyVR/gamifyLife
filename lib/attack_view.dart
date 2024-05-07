@@ -181,6 +181,12 @@ class _AttackViewState extends State<AttackView> {
     );
   }
 
+  Map getEspionageResults(String espionage){
+
+    Map espionageResults = json.decode(espionage);
+    return espionageResults;
+  }
+
 
   Widget _attackDetailsDialog(Attack attack) {
     String formatTimestamp(String timestamp) {
@@ -220,7 +226,6 @@ class _AttackViewState extends State<AttackView> {
                 Center(child: Text("Returned: ${formatTimestamp(attack.returnedAt!.toIso8601String())}")),
                 SizedBox(height: 50),
                 Center(child: Text("Attacker: ${attack.sourceVillageName ?? 'Unknown'}")),
-                Center(child: Text("opened: ${attack.opened}")),
 
                 FutureBuilder<Widget>(
                   future: generateUnitsTable(attack.sourceUnitsBefore, attack.sourceUnitsAfter!, 1, attack.owned),
@@ -237,7 +242,7 @@ class _AttackViewState extends State<AttackView> {
                 SizedBox(height: 30),
                 Center(child: Text("Defender: ${attack.destinationVillageName ?? 'Unknown'}")),
                 FutureBuilder<Widget>(
-                  future: generateUnitsTable(attack.destinationUnitsBefore!, attack.destinationUnitsAfter!, 1, attack.owned),
+                  future: generateUnitsTable(attack.destinationUnitsBefore!, attack.destinationUnitsAfter!, attack.outcome!, attack.owned),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return CircularProgressIndicator();  // return a loader while waiting
@@ -268,6 +273,12 @@ class _AttackViewState extends State<AttackView> {
                 ),
                 SizedBox(height: 30.0),  // You can adjust the spacing as needed
                 Center(child: Text("Damage to townhall: ${attack.damage}")),
+                SizedBox(height: 30.0),  // You can adjust the spacing as needed
+                attack.espionage != null? Center(child: Text(
+                    "Espionage: \n Coins: ${getEspionageResults(attack.espionage!)['coins']} "
+                        "\n Townhall: ${getEspionageResults(attack.espionage!)['townhall']} "
+                        "\n Barracks: ${getEspionageResults(attack.espionage!)['barracks']} "
+                        "\n Farm: ${getEspionageResults(attack.espionage!)['farm']}")) : SizedBox(width: 5.0),
               ],
             ),
             Positioned(
@@ -387,8 +398,23 @@ class _AttackViewState extends State<AttackView> {
 
     }
 
-    // Check if attackOutcome == 1
-    else if (attackOutcome == 1 || attackOwned == 0) {
+
+    else if (attackOutcome == 0 && attackOwned == 1){
+      print('OPTION 2');
+      print(attackOutcome);
+      print(attackOwned);
+      rows = [
+        DataRow(cells: unitsBefore.map((unitMap) {
+          return DataCell(Text("  -"));
+        }).toList()),
+        DataRow(cells: List.generate(unitsBefore.length, (index) {
+          return DataCell(Text("  -"));
+        })),
+      ];
+    } else{
+      print('OPTION 1');
+      print(attackOutcome);
+      print(attackOwned);
       rows = [
         DataRow(cells: unitsBefore.map((unitMap) {
           return DataCell(Text("  ${unitMap['amount'].toString()}"));
@@ -400,16 +426,37 @@ class _AttackViewState extends State<AttackView> {
           return DataCell(Text("-${died.toString()}"));
         })),
       ];
-    } else {
-      rows = [
-        DataRow(cells: unitsBefore.map((unitMap) {
-          return DataCell(Text("  -"));
-        }).toList()),
-        DataRow(cells: List.generate(unitsBefore.length, (index) {
-          return DataCell(Text("  -"));
-        })),
-      ];
     }
+
+    // Check if attackOutcome == 1
+    // else if (attackOutcome == 1 || attackOwned == 0) {
+    //   print('OPTION 1');
+    //   print(attackOutcome);
+    //   print(attackOwned);
+    //   rows = [
+    //     DataRow(cells: unitsBefore.map((unitMap) {
+    //       return DataCell(Text("  ${unitMap['amount'].toString()}"));
+    //     }).toList()),
+    //     DataRow(cells: List.generate(unitsBefore.length, (index) {
+    //       int before = unitsBefore[index]['amount'];
+    //       int after = unitsAfter[index]['amount'];
+    //       int died = before - after;
+    //       return DataCell(Text("-${died.toString()}"));
+    //     })),
+    //   ];
+    // } else {
+    //   print('OPTION 2');
+    //   print(attackOutcome);
+    //   print(attackOwned);
+    //   rows = [
+    //     DataRow(cells: unitsBefore.map((unitMap) {
+    //       return DataCell(Text("  -"));
+    //     }).toList()),
+    //     DataRow(cells: List.generate(unitsBefore.length, (index) {
+    //       return DataCell(Text("  -"));
+    //     })),
+    //   ];
+    // }
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,

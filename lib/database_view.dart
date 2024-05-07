@@ -13,8 +13,7 @@ class _DatabaseViewState extends State<DatabaseView> {
   String? _selectedTable;
 
   int? selectedVersion; // Holds the selected backup version
-  final List<int> availableVersions = List.generate(31, (index) => index + 1); // Example list of versions
-
+  final List<int> availableVersions = List.generate(31, (index) => index + 1);
 
   @override
   void initState() {

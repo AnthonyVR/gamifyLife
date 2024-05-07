@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import '../config/globals.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -216,8 +218,6 @@ class DatabaseHelper {
 
     print("Running function createInitialDatabase()...");
 
-    print("Test 1");
-
     await db.execute('''
           CREATE TABLE $habitsTable (
             $columnId INTEGER PRIMARY KEY,
@@ -234,8 +234,6 @@ class DatabaseHelper {
                       )
           ''');
 
-    print("Test 2");
-
 
     print("Table habitsTable created");
 
@@ -248,10 +246,7 @@ class DatabaseHelper {
 
     print("Table daysTable created");
 
-    print("Test 3");
-
-
-
+    
     await db.execute('''
           CREATE TABLE $habitHistoryTable (
             $columnId INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -426,8 +426,7 @@ class _UnitsPopupState extends State<UnitsPopup> {
               title: Text(unit.name),
               subtitle: Row(
                 children: [
-                  Text('Amount:'),
-                  SizedBox(width: 15),
+                  Image.asset(unit.image, width: 50, height: 50),
                   DropdownButton<int>(
                     value: selectedUnitsMap[unit],
                     items: List.generate(unit.amount + 1, (index) {
@@ -441,7 +440,7 @@ class _UnitsPopupState extends State<UnitsPopup> {
                         selectedUnitsMap[unit] = value!;
                       });
                     },
-                  )
+                  ),// adjust width and height as needed
                 ],
               ),
               onTap: () {

@@ -287,7 +287,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               // Expanded(
-              //   flex: 1,  // this will allocate 1 part of the space to this child
+              //   flex: 2,  // this will allocate 1 part of the space to this child
               //   child: Align(
               //     alignment: Alignment.centerRight,
               //     child: FutureBuilder<double>(
@@ -305,7 +305,7 @@ class _HomePageState extends State<HomePage> {
               //   ),
               // ),
               // Expanded(
-              //   flex: 1,  // this will allocate 1 part of the space to this child
+              //   flex: 2,  // this will allocate 1 part of the space to this child
               //   child: Align(
               //     alignment: Alignment.centerRight,
               //     child: FutureBuilder<int>(
@@ -386,19 +386,6 @@ class _HomePageState extends State<HomePage> {
                 }
               },
             ),
-            // ListTile(
-            //   title: Text('Remove ALL database tables'),
-            //   onTap: () {
-            //     if(GlobalVariables.appMode == 'test' || 1 == 1){
-            //       dbHelper.clearDatabase();
-            //       setState(() {
-            //       });
-            //     }
-            //     else {
-            //       print("cannot remove production data");
-            //     }
-            //   },
-            // ),
             GlobalVariables.appMode == 'test' ? ListTile(
               title: Text('Remove AND Rebuild ALL initial database contents'),
               onTap: () {
@@ -415,18 +402,17 @@ class _HomePageState extends State<HomePage> {
 
                 if(enemySourceUnitsList.isNotEmpty){
 
-                  List<Map<String, dynamic>> enemySourceUnits = enemySourceUnitsList.map((unit) {
-                    return {
-                      'unit': unit,
-                      'amount': unit.amount,
-                    };
-                  }).toList();
-
-                  Attack.createAttack(DateTime.now(), 3, 1, enemySourceUnits);
-
-
+                    List<Map<String, dynamic>> enemySourceUnits = enemySourceUnitsList.map((unit) {
+                      return {
+                        'unit': unit,
+                        'amount': unit.amount,
+                      };
+                    }).toList();
+                    Attack.createAttack(DateTime.now(), 3, 1, enemySourceUnits);
+                  }
+                  setState(() {
+                  });
                 }
-                setState(() {});
               },
             ) : SizedBox(),
             GlobalVariables.appMode == 'test' ? ListTile(
@@ -440,11 +426,11 @@ class _HomePageState extends State<HomePage> {
             GlobalVariables.appMode == 'test' ? ListTile(
               title: Text('Delete all habits'),
               onTap: () {
-                  dbHelper.habitDao.removeAllHabits();
-                  setState(() {
-                  });
+                dbHelper.habitDao.removeAllHabits();
+                setState(() {
+                });
               },
-            ) : SizedBox(),
+            ): SizedBox(),
             // ListTile(
             //   title: Text('Reset player data'),
             //   onTap: () {
@@ -475,7 +461,7 @@ class _HomePageState extends State<HomePage> {
                   print("Invalid app mode");
                 }
               },
-            ),            // Add more ListTiles for other options
+            ),
           ],
         )
       ),
