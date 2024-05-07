@@ -63,8 +63,7 @@ class _SettingsViewState extends State<SettingsView> {
         children: [
           _settingsTextField("Village Spawn Frequency:", villageSpawnFrequencyController),
           _settingsTextField("Building Level Up Frequency:", buildingLevelUpFrequencyController),
-          _settingsTextField("Unit Creation Frequency:", unitCreationFrequencyController),
-          _settingsTextField("Unit Training Frequency:", unitTrainingFrequencyController),
+          _settingsTextField("Unit Creation Frequency (multiplied by townhall level):", unitCreationFrequencyController),          _settingsTextField("Unit Training Frequency:", unitTrainingFrequencyController),
           _settingsTextField("Attack Frequency:", attackFrequencyController),
           _settingsTextField("Cost Multiplier:", costMultiplierController),
           SizedBox(height: 20),

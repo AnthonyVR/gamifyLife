@@ -249,6 +249,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       // choose here full color package of main screen
       backgroundColor: Colors.black, //Color(0xFFb87a3d),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked, // Default FAB location
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(50),
         child: AppBar(
@@ -256,7 +257,7 @@ class _HomePageState extends State<HomePage> {
           title: Row(
             children: [
               Expanded(
-                flex: 6,  // this will allocate 3 parts of the space to this child
+                flex: 8,  // this will allocate 3 parts of the space to this child
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
@@ -275,77 +276,52 @@ class _HomePageState extends State<HomePage> {
                         await _goToNextDate();
                       },
                     ),
-                    // IconButton(
-                    //   icon: Icon(Icons.access_alarm),
-                    //   onPressed: () async {
-                    //     print("Trying to schedule an immediate one-time task");
-                    //     await Workmanager().registerOneOffTask(
-                    //       "1",  // Ensure this ID is unique if you also have periodic tasks scheduled.
-                    //       "calculateEventsTask",  // This should match the task name in the callbackDispatcher.
-                    //       initialDelay: Duration(seconds: 5),  // Short delay to simulate immediate execution
-                    //       inputData: {'key': 'value'},  // Optional: Data you want to pass to the task.
-                    //     );
-                    //   },
-                    // ),
                     IconButton(
                       icon: Icon(Icons.access_alarm),
                       onPressed: () async {
                         print("running calculateEvents() from alarm button");
-                        final db = await DatabaseHelper.instance.database;
                         await calculateEvents();
-                        // print("trying to run ExecuteTask method");
-                        //
-                        // Workmanager().executeTask((task, inputData) {
-                        //   print("Background task: $task"); // task name is useful for debugging
-                        //
-                        //   if (task == 'calculateEventsTask') {
-                        //     print("TASK ==  calculateEventsTask");
-                        //     calculateEvents(); // Your function to perform background tasks
-                        //   }
-                        //
-                        //   return Future.value(true); // return true from the callback, indicating the task is successful.
-                        // });
                       },
                     ),
                   ],
                 ),
               ),
-              Expanded(
-                flex: 2,  // this will allocate 1 part of the space to this child
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: FutureBuilder<double>(
-                    future: Village.getTotalRewardFactor(),
-                    builder: (BuildContext context, AsyncSnapshot<double> snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return CircularProgressIndicator();  // show loading spinner while waiting
-                      } else if (snapshot.hasError) {
-                        return Text('Error: ${snapshot.error}');  // show error message if there's any error
-                      } else {
-                        return Text('${snapshot.data}');  // display total difficultys when data is available
-                      }
-                    },
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 2,  // this will allocate 1 part of the space to this child
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: FutureBuilder<int>(
-                    future: dbHelper.habitHistoryDao.getTotalDifficultysForToday(date, weekday),
-                    builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return CircularProgressIndicator();  // show loading spinner while waiting
-                      } else if (snapshot.hasError) {
-                        return Text('Error: ${snapshot.error}');  // show error message if there's any error
-                      } else {
-                        return Text('${snapshot.data}');  // display total difficultys when data is available
-                      }
-                    },
-                  ),
-                ),
-              ),
+              // Expanded(
+              //   flex: 2,  // this will allocate 1 part of the space to this child
+              //   child: Align(
+              //     alignment: Alignment.centerRight,
+              //     child: FutureBuilder<double>(
+              //       future: Village.getTotalRewardFactor(),
+              //       builder: (BuildContext context, AsyncSnapshot<double> snapshot) {
+              //         if (snapshot.connectionState == ConnectionState.waiting) {
+              //           return CircularProgressIndicator();  // show loading spinner while waiting
+              //         } else if (snapshot.hasError) {
+              //           return Text('Error: ${snapshot.error}');  // show error message if there's any error
+              //         } else {
+              //           return Text('${snapshot.data}');  // display total difficultys when data is available
+              //         }
+              //       },
+              //     ),
+              //   ),
+              // ),
+              // Expanded(
+              //   flex: 2,  // this will allocate 1 part of the space to this child
+              //   child: Align(
+              //     alignment: Alignment.centerRight,
+              //     child: FutureBuilder<int>(
+              //       future: dbHelper.habitHistoryDao.getTotalDifficultysForToday(date, weekday),
+              //       builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
+              //         if (snapshot.connectionState == ConnectionState.waiting) {
+              //           return CircularProgressIndicator();  // show loading spinner while waiting
+              //         } else if (snapshot.hasError) {
+              //           return Text('Error: ${snapshot.error}');  // show error message if there's any error
+              //         } else {
+              //           return Text('${snapshot.data}');  // display total difficultys when data is available
+              //         }
+              //       },
+              //     ),
+              //   ),
+              // ),
             ],
           ),
 
@@ -397,45 +373,28 @@ class _HomePageState extends State<HomePage> {
               },
             ),
             ListTile(
-              title: Text('Remove ALL database tables'),
-              onTap: () {
-                if(GlobalVariables.appMode == 'test' || 1 == 1){
-                  dbHelper.clearDatabase();
-                  setState(() {
-                  });
-                }
-                else {
-                  print("cannot remove production data");
+              title: Text('Restore database to last version'),
+              onTap: () async {
+                try {
+                  await DatabaseHelper.instance.restoreDatabaseFromBackup(3);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text("Database restored successfully."),
+                  ));
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text("Failed to restore database: $e"),
+                  ));
                 }
               },
             ),
-            ListTile(
-              title: Text('Rebuild ALL initial database contents (not working)'),
-              onTap: () {
-                // if(GlobalVariables.appMode == 'test' || 1 == 1){
-                //   dbHelper.createInitialDatabase();
-                //   setState(() {
-                //   });
-                // }
-                // else {
-                //   print("cannot remove production data");
-                // }
-              },
-            ),
-            ListTile(
+            GlobalVariables.appMode == 'test' ? ListTile(
               title: Text('Remove AND Rebuild ALL initial database contents'),
               onTap: () {
-                if(GlobalVariables.appMode == 'test' || 1 == 1){
-                  dbHelper.clearAndRebuildDatabase();
-                  setState(() {
-                  });
-                }
-                else {
-                  print("cannot remove production data");
-                }
+                dbHelper.clearAndRebuildDatabase();
+                setState(() {});
               },
-            ),
-            ListTile(
+            ) : SizedBox(),
+            GlobalVariables.appMode == 'test' ? ListTile(
               title: Text('Trigger incoming attack'),
               onTap: () async {
                 if(GlobalVariables.appMode == 'test' || 1 == 1){
@@ -451,78 +410,60 @@ class _HomePageState extends State<HomePage> {
                         'amount': unit.amount,
                       };
                     }).toList();
-
                     Attack.createAttack(DateTime.now(), 3, 1, enemySourceUnits);
-
-
                   }
                   setState(() {
                   });
                 }
-                else {
-                  print("cannot remove production data");
-                }
               },
-            ),
-            ListTile(
+            ) : SizedBox(),
+            GlobalVariables.appMode == 'test' ? ListTile(
               title: Text('Delete habit history'),
               onTap: () {
-                if(GlobalVariables.appMode == 'test' || 1 == 1){
-                  dbHelper.habitHistoryDao.removeAllHabitHistory();
-                }
-                else {
-                  print("cannot remove production data");
-                }
+                dbHelper.habitHistoryDao.removeAllHabitHistory();
+                setState(() {
+                });
               },
-            ),
-            ListTile(
+            ): SizedBox(),
+            GlobalVariables.appMode == 'test' ? ListTile(
               title: Text('Delete all habits'),
               onTap: () {
-                if(GlobalVariables.appMode == 'test' || 1 == 1){
-                  dbHelper.habitDao.removeAllHabits();
-                  setState(() {
-
-                  });
-                }
-                else {
-                  print("cannot remove production data");
-                }
+                dbHelper.habitDao.removeAllHabits();
+                setState(() {
+                });
               },
-            ),
-            ListTile(
-              title: Text('Reset player data'),
-              onTap: () {
-                if(GlobalVariables.appMode == 'test' || 1 == 1){
-                  playerModel.resetData();
-                  setState(() {
-                  });
-                }
-                else {
-                  print("cannot remove production data");
-                }
-              },
-            ),
+            ): SizedBox(),
+            // ListTile(
+            //   title: Text('Reset player data'),
+            //   onTap: () {
+            //     if(GlobalVariables.appMode == 'test' || 1 == 1){
+            //       playerModel.resetData();
+            //       setState(() {
+            //       });
+            //     }
+            //     else {
+            //       print("cannot remove production data");
+            //     }
+            //   },
+            // ),
             ListTile(
               title: Text('App mode: ${GlobalVariables.appMode}'),
-              onTap: () {
-                if(GlobalVariables.appMode == 'test'){
-                  GlobalVariables.appMode = 'prod';
-                  dbHelper.initDatabase();
-                  setState(() {
-                  });
-                }else if(GlobalVariables.appMode == 'prod'){
-                  GlobalVariables.appMode = 'test';
-                  print('debuggin test 1');
-                  dbHelper.initDatabase();
-                  setState(() {
-                  });
-                }
-                else {
-                  print("cannot remove production data");
+              onTap: () async {
+                if (GlobalVariables.appMode == 'test' || GlobalVariables.appMode == 'prod') {
+                  // Toggle the mode
+                  GlobalVariables.appMode = (GlobalVariables.appMode == 'test') ? 'prod' : 'test';
+                  print('Switching mode to: ${GlobalVariables.appMode}');
+
+                  // Reinitialize the database with the new mode
+                  await DatabaseHelper.instance.initDatabase();
+
+                  // Use setState to rebuild the widget with the new state
+                  setState(() {});
+                } else {
+                  print("Invalid app mode");
                 }
               },
             ),
-            // Add more ListTiles for other options
           ],
         )
       ),
@@ -678,19 +619,115 @@ class _HomePageState extends State<HomePage> {
           return CircularProgressIndicator();
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.orange,
-        onPressed: () async {  // Note the async keyword
-          await showDialog(  // Note the await keyword
-            context: context,
-            builder: (context) {
-              return HabitCreator(date: formattedDate);
-            },
-          );
-          // After the dialog is dismissed, refresh the state
-          setState(() {});
-        },
-        child: Icon(Icons.add),
+      floatingActionButton: Stack(
+        children: <Widget>[
+          Positioned(
+            right: 20,
+            bottom: 100,
+            child: FloatingActionButton(
+              backgroundColor: Colors.orange,
+              onPressed: () async {
+                await showDialog(
+                  context: context,
+                  builder: (context) {
+                    return HabitCreator(date: formattedDate);
+                  },
+                );
+                // After the dialog is dismissed, refresh the state
+                setState(() {});
+              },
+              child: Icon(Icons.add),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            bottom: 80,
+            child: Container(
+              width: 160,  // Define the width of the button
+              height: 48,  // Define the height of the button
+              child: ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        content: Align(
+                          alignment: Alignment.topCenter,
+                          child: FutureBuilder<double>(
+                            future: Village.getTotalRewardFactor(),
+                            builder: (BuildContext context, AsyncSnapshot<double> snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return CircularProgressIndicator();
+                              } else if (snapshot.hasError) {
+                                return Text('Error: ${snapshot.error}');
+                              } else {
+                                return Text('${snapshot.data}');
+                              }
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),  // Rounded corners
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,  // Use the minimal space for the row content
+                  children: [
+                    SvgPicture.asset(
+                      'assets/coins.svg',
+                      height: 20,
+                      width: 20,
+                    ),
+                    SizedBox(width: 6),  // Space between the icon and text
+                    FutureBuilder<int>(
+                      future: dbHelper.habitHistoryDao.getTotalDifficultysForToday(date, weekday),
+                      builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return CircularProgressIndicator();  // Show loading spinner while waiting
+                        } else if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}', style: TextStyle(color: Colors.white));  // Show error message if there's any error
+                        } else {
+                          return Text(
+                            '${snapshot.data}',  // Display your data
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,  // Set the font size
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                    SizedBox(width: 10),  // Space between the icon and text
+                    FutureBuilder<double>(
+                      future: Village.getTotalRewardFactor(),
+                      builder: (BuildContext context, AsyncSnapshot<double> snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return CircularProgressIndicator();
+                        } else if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}');
+                        } else {
+                          return Text(
+                            'x   ${snapshot.data}',  // Display your data
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 24,  // Set the font size
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: BottomAppBar(
         color: Colors.white10,

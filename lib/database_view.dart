@@ -12,6 +12,9 @@ class _DatabaseViewState extends State<DatabaseView> {
   List<Map<String, dynamic>> _selectedTableData = [];
   String? _selectedTable;
 
+  int? selectedVersion; // Holds the selected backup version
+  final List<int> availableVersions = List.generate(31, (index) => index + 1);
+
   @override
   void initState() {
     super.initState();
@@ -40,6 +43,39 @@ class _DatabaseViewState extends State<DatabaseView> {
       appBar: AppBar(title: Text("Database Viewer")),
       body: Column(
         children: [
+          DropdownButton<int>(
+            value: selectedVersion,
+            hint: Text("Select Version"),
+            onChanged: (int? newValue) {
+              setState(() {
+                selectedVersion = newValue;
+              });
+            },
+            items: availableVersions.map<DropdownMenuItem<int>>((int value) {
+              return DropdownMenuItem<int>(
+                value: value,
+                child: Text("Version $value"),
+              );
+            }).toList(),
+          ),
+          ElevatedButton(
+              onPressed: selectedVersion != null ? () async {
+                try {
+                  String status = await DatabaseHelper.instance.restoreDatabaseFromBackup(selectedVersion!);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(status),
+                  ));
+                  setState(() {
+                  });
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text("Failed to restore database: $e"),
+                  ));
+                }
+              } : null,
+              child: Text("Restore database")),
+          Divider(),
+          Text("Currently loaded database"),
           DropdownButton<String>(
             value: _selectedTable,
             onChanged: (value) {
