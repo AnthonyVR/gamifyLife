@@ -84,13 +84,15 @@ class _FarmViewState extends State<FarmView> {
                         color: (index + 1) <= currentFarmLevel ? Colors.green : Colors.grey,
                         size: 30,
                       ),
-                      onPressed: () {
+                      onPressed: () async {
                         if ((index) == currentFarmLevel) {
                           // Only allow upgrade if the level is 1 greater than the current farm level
-                          setState(() async {
-                            final db = await DatabaseHelper.instance.database;
-                            village?.upgradeBuildingLevel(db, 'farm');
-                            currentFarmLevel = index + 1; // Placeholder logic, you can replace with db update logic.
+                          final db = await DatabaseHelper.instance.database;
+                          village?.upgradeBuildingLevel(db, 'farm', getCost(index + 1));
+                          currentFarmLevel = index + 1; // Placeholder logic, you can replace with db update logic.
+
+                          setState(() {
+
                           });
                         }
                       },
@@ -114,7 +116,7 @@ class _FarmViewState extends State<FarmView> {
 
   int getCost(int level) {
 
-    final double initialCost = 10;
+    const double initialCost = 80;
     final double? costMultiplier = _settings?.costMultiplier;
 
     return (initialCost * pow(costMultiplier!, level - 1)).round();

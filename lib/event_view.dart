@@ -51,6 +51,7 @@ class _EventViewState extends State<EventView> {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 4.0),
                     child: ListTile(
+                      onLongPress: () => showInfoDialog(context, event.info), // Call the function on long press
                       tileColor: _getColorForEventType(event.eventType),
                       title: Text(formatTimestamp(event.timestamp.toIso8601String())),
                       subtitle: Column(
@@ -58,7 +59,7 @@ class _EventViewState extends State<EventView> {
                         children: [
                           Row(
                             children: [
-                              Text(event.info.toString()),
+                              //Text(event.info.toString()),
                               Spacer(), // This will take up all available space between the text widgets
                               Text(event.eventType),
                             ],
@@ -79,6 +80,48 @@ class _EventViewState extends State<EventView> {
       ),
     );
   }
+
+  void showInfoDialog(BuildContext context, Map<dynamic, dynamic> info) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Details'), // Optional: Add a title
+          content: SingleChildScrollView( // Makes the dialog scrollable if content is too long
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: info.entries.map((entry) {
+                return Padding(
+                  padding: EdgeInsets.only(bottom: 8.0), // Spacing between each row
+                  child: Row(
+                    children: <Widget>[
+                      Expanded(
+                        flex: 4,
+                        child: Text('${entry.key}:', style: TextStyle(fontWeight: FontWeight.bold)), // Key with bold style
+                      ),
+                      Expanded(
+                        flex: 1,
+                        child: Text(' ${entry.value.toString()}'), // Value
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 
 
   Color _getColorForEventType(String eventType) {

@@ -44,7 +44,7 @@ class Settings {
 
   static Future<void> createTable(db) async {
     await db.execute('''
-      CREATE TABLE settings (
+      CREATE TABLE IF NOT EXISTS settings (
         id INTEGER PRIMARY KEY,
         villageSpawnFrequency INTEGER NOT NULL,
         buildingLevelUpFrequency INTEGER NOT NULL,

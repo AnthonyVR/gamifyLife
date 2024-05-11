@@ -72,17 +72,86 @@ class _BarracksViewState extends State<BarracksView> {
     village.addUnit(id);
   }
 
+  Future<Village?> _getVillage() async {
+    return await Village.getVillageById(widget.villageId);
+  }
+
+
+  Future<Village?> _getVillageCapacity() async {
+    return await Village.getVillageById(widget.villageId);
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
+          automaticallyImplyLeading: false, // This will hide the back button
           backgroundColor: Colors.brown[700],
-          title: Text('Barracks'),
+          title: FutureBuilder<Village?>(
+            future: _getVillage(),
+            builder: (context, villageSnapshot) {
+              if (villageSnapshot.connectionState == ConnectionState.done) {
+                if (villageSnapshot.hasError) {
+                  return Text('Error');
+                }
+                if (!villageSnapshot.hasData || villageSnapshot.data == null) {
+                  return Text('No Village Data');
+                }
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        SvgPicture.asset(
+                          'assets/coins.svg',
+                          width: 25,
+                          height: 25,
+                        ),
+                        SizedBox(width: 5,),
+                        Text("${villageSnapshot.data?.coins}", style: TextStyle(fontSize: 28),),
+                      ],
+                    ),
+                    Text("Barracks"),
+                    FutureBuilder<int?>(
+                      future: villageSnapshot.data!.getPopulation(),
+                      builder: (context, populationSnapshot) {
+                        if (populationSnapshot.connectionState == ConnectionState.done) {
+                          if (!populationSnapshot.hasData || populationSnapshot.data == null) {
+                            return Text('(No population data)');
+                          }
+                          return FutureBuilder<int?>(
+                            future: villageSnapshot.data!.getCapacity(),
+                            builder: (context, capacitySnapshot) {
+                              if (capacitySnapshot.connectionState == ConnectionState.done) {
+                                if (!capacitySnapshot.hasData || capacitySnapshot.data == null) {
+                                  return Text('${populationSnapshot.data} / (No capacity data)');
+                                }
+                                return Text('${populationSnapshot.data} / ${capacitySnapshot.data}');
+                              } else {
+                                return CircularProgressIndicator();
+                              }
+                            },
+                          );
+                        } else {
+                          return CircularProgressIndicator();
+                        }
+                      },
+                    )
+                  ],
+                );
+
+              } else {
+                return CircularProgressIndicator();
+              }
+            },
+          ),
           bottom: TabBar(
             tabs: [
-              Tab(text: 'Recruitment',),
+              Tab(text: 'Recruitment'),
               Tab(text: 'Training'),
             ],
           ),
@@ -182,7 +251,8 @@ class _BarracksViewState extends State<BarracksView> {
                                 children: [
                                   Text('Atk: ${unit.offence}'),
                                   Text('Def: ${unit.defence}'),
-                                  SizedBox(height: 8.0),
+                                  SizedBox(height: 12.0),
+                                  Text('Loot: ${unit.loot}'),
                                 ],
                               ),
                             ),
@@ -321,6 +391,8 @@ class _BarracksViewState extends State<BarracksView> {
                                   children: [
                                     Text('Atk: ${unit.offence} (+${(unit.initialOffence * pow(costMultiplier!, unit.level )).round() - (unit.initialOffence * pow(costMultiplier!, unit.level -1)).round()})'),
                                     Text('Def: ${unit.defence} (+${(unit.initialDefence * pow(costMultiplier!, unit.level )).round() - (unit.initialDefence * pow(costMultiplier!, unit.level -1)).round()})'),
+                                    SizedBox(height: 10),
+                                    Text('Loot: ${unit.loot} (+${(unit.initialLoot * pow(costMultiplier!, unit.level )).round() - (unit.initialLoot * pow(costMultiplier!, unit.level -1)).round()})'),
                                     SizedBox(height: 8.0),
                                   ],
                                 ),

@@ -81,13 +81,15 @@ class _TownhallViewState extends State<TownhallView> {
                         color: (index + 1) <= currentTownHallLevel ? Colors.green : Colors.grey,
                         size: 30,
                       ),
-                      onPressed: () {
+                      onPressed: () async {
                         if ((index) == currentTownHallLevel) {
+
                           // Only allow upgrade if the level is 1 greater than the current townhall level
-                          setState(() async {
-                            final db = await DatabaseHelper.instance.database;
-                            village?.upgradeBuildingLevel(db, 'town_hall');
-                            currentTownHallLevel = index + 1; // Placeholder logic, you can replace with db update logic.
+                          final db = await DatabaseHelper.instance.database;
+                          village?.upgradeBuildingLevel(db, 'town_hall', getCost(index + 1));
+                          currentTownHallLevel = index + 1; // Placeholder logic, you can replace with db update logic.
+
+                          setState(() {
                           });
                         }
                       },
@@ -111,7 +113,7 @@ class _TownhallViewState extends State<TownhallView> {
 
   int getCost(int level) {
 
-    const double initialCost = 10;
+    const double initialCost = 100;
     final double? costMultiplier = _settings?.costMultiplier;
 
     return (initialCost * pow(costMultiplier!, level - 1)).round();

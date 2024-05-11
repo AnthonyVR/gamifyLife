@@ -144,9 +144,9 @@ class DatabaseHelper {
 
     if(appMode == 'test') {
       print("App running in test mode");
-      habitsTable = 'test_habits';
-      daysTable = 'test_days';
-      habitHistoryTable = 'test_habit_history';
+      habitsTable = 'habits';
+      daysTable = 'days';
+      habitHistoryTable = 'habit_history';
     }
     else if (appMode == 'prod') {
       print("App running in production mode!");
@@ -170,13 +170,14 @@ class DatabaseHelper {
 
   }
 
-  Future<void> backupDatabase(int day) async {
-    // Get the current database path
-    String dbPath = join(await getDatabasesPath(), "${GlobalVariables.appMode}_$_databaseName");
+  Future<void> backupDatabase(DateTime timestamp) async {
+    // Format the timestamp
+    String formattedTimestamp = DateFormat('yyyy-MM-dd_HH:mm:ss').format(timestamp);
 
-    // Get a directory to store the backup. Using the documents directory for simplicity
+    // Paths
+    String dbPath = join(await getDatabasesPath(), "${GlobalVariables.appMode}_$_databaseName");
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String backupPath = join(documentsDirectory.path, "${GlobalVariables.appMode}_${_databaseName}_$day.backup");
+    String backupPath = join(documentsDirectory.path, "${GlobalVariables.appMode}_${_databaseName}_$formattedTimestamp.backup");
 
     // Copy the file
     File originalFile = File(dbPath);
@@ -185,32 +186,30 @@ class DatabaseHelper {
     print("Backup created at $backupPath");
   }
 
-  Future<String> getBackupPath(int day) async {
+  Future<String> getBackupPath(String formattedTimestamp) async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    return join(documentsDirectory.path, "${GlobalVariables.appMode}_${_databaseName}_$day.backup");
+    return join(documentsDirectory.path, "${GlobalVariables.appMode}_${_databaseName}_$formattedTimestamp.backup");
   }
 
-  Future<String> restoreDatabaseFromBackup(int day) async {
-
+  Future<String> restoreDatabaseFromBackup(String backupFileName) async {
     String status = "Failed to restore";
     try {
-      String backupPath = await getBackupPath(day);
-      File backupFile = File(backupPath);
+      Directory documentsDirectory = await getApplicationDocumentsDirectory();
+      String backupPath = join(documentsDirectory.path, backupFileName);
 
+      File backupFile = File(backupPath);
       if (await backupFile.exists()) {
         String dbPath = join(await getDatabasesPath(), "${GlobalVariables.appMode}_$_databaseName");
         await backupFile.copy(dbPath);
-
-        print("Database ${backupPath} has been restored from backup.");
-        status = "restore successful!";
+        status = "Restore successful!";
+        print("Database restored from backup at $backupPath");
       } else {
-        status = "Backup file ${backupPath} does not exist.";
-        print("Backup file ${backupPath} does not exist.");
+        status = "Backup file does not exist.";
+        print("Backup file $backupPath does not exist.");
       }
     } catch (e) {
       print("Failed to restore the database: $e");
     }
-
     return status;
   }
 
@@ -219,7 +218,7 @@ class DatabaseHelper {
     print("Running function createInitialDatabase()...");
 
     await db.execute('''
-          CREATE TABLE $habitsTable (
+          CREATE TABLE IF NOT EXISTS $habitsTable (
             $columnId INTEGER PRIMARY KEY,
             $columnTitle TEXT NOT NULL,
             $columnDifficulty INTEGER NOT NULL,
@@ -238,7 +237,7 @@ class DatabaseHelper {
     print("Table habitsTable created");
 
     await db.execute('''
-          CREATE TABLE $daysTable (
+          CREATE TABLE IF NOT EXISTS $daysTable (
             $columnDate TEXT PRIMARY KEY,
             $columnWeekday TEXT NOT NULL
           )
@@ -248,7 +247,7 @@ class DatabaseHelper {
 
     
     await db.execute('''
-          CREATE TABLE $habitHistoryTable (
+          CREATE TABLE IF NOT EXISTS $habitHistoryTable (
             $columnId INTEGER PRIMARY KEY AUTOINCREMENT,
             $columnDate DATE NOT NULL,
             $columnHabitID INTEGER NOT NULL,
@@ -291,31 +290,29 @@ class DatabaseHelper {
 
 
     // CREATE INITIAL SETTINGS
-    Settings settings = Settings(id: 1, villageSpawnFrequency: 60, buildingLevelUpFrequency: 20, unitCreationFrequency: 20, unitTrainingFrequency: 20, attackFrequency: 20, costMultiplier: 1.5);
+    int divider = 24; //set this number to easily change speed of the game for testing (e.g. for value 24, the game can be played hourly instead of daily)
+    Settings settings = Settings(id: 1, villageSpawnFrequency: ((3*24*60) / divider).round(), buildingLevelUpFrequency: ((1*24*60) / divider).round(), unitCreationFrequency: ((0.5*24*60) / divider).round(), unitTrainingFrequency: ((3*24*60) / divider).round(), attackFrequency: ((3*24*60) / divider).round(), costMultiplier: 1.3);
     settings.insertToDb(db);
 
-    Settings ssettings = await Settings.getSettingsFromDB(db);
-
-    print("the seettings:");
-    print(ssettings);
+    //Settings ssettings = await Settings.getSettingsFromDB(db);
 
     // INSERT INITIAL PLAYER
     await Player.insertPlayer(db, Player(id: 1, level: 1, score: 0, rewardFactor: 1));
 
     // INSERT FIRST VILLAGES
-    await Village.insertVillage(db, Village(id: 1, name: 'Your village', owned: 1, row: 15, column: 15, coins: 30));
-    await Village.insertVillage(db, Village(id: 2, name: 'Your village 2', owned: 1, row: 14, column: 15, coins: 40));
-    await Village.insertVillage(db, Village(id: 3, name: 'Enemy village 1', owned: 0, row: 15, column: 16, coins: 100));
-    await Village.insertVillage(db, Village(id: 4, name: 'Enemy village 2', owned: 0, row: 14, column: 16, coins: 100));
-    await Village.insertVillage(db, Village(id: 5, name: 'Enemy village 3', owned: 0, row: 16, column: 15, coins: 100));
+    await Village.insertVillage(db, Village(id: 1, name: 'Your village', owned: 1, row: 15, column: 15, coins: 0));
+    await Village.insertVillage(db, Village(id: 2, name: 'Enemy village 1', owned: 0, row: 12, column: 18, coins: 0));
+    //await Village.insertVillage(db, Village(id: 3, name: 'Your village 2', owned: 1, row: 14, column: 15, coins: 0));
+    //await Village.insertVillage(db, Village(id: 4, name: 'Enemy village 2', owned: 0, row: 14, column: 16, coins: 100));
+    //await Village.insertVillage(db, Village(id: 5, name: 'Enemy village 3', owned: 0, row: 16, column: 15, coins: 100));
 
 
     // CREATE INITIAL VILLAGE WITH ALL OF ITS INITIAL TILES, UNITS, AND BUILDINGS AND OBJECTS
     await Village.createInitialVillage(db, 1);
     await Village.createInitialVillage(db, 2);
-    await Village.createInitialVillage(db, 3);
-    await Village.createInitialVillage(db, 4);
-    await Village.createInitialVillage(db, 5);
+    //await Village.createInitialVillage(db, 3);
+    // await Village.createInitialVillage(db, 4);
+    // await Village.createInitialVillage(db, 5);
 
 
 
@@ -345,6 +342,20 @@ class DatabaseHelper {
     print("function clearDatabase() finished");
   }
 
+  Future<void> clearDatabaseExceptHabits() async {
+    final db = await database;
+    print("Running function clearDatabase()...");
+    // Get the list of tables
+    List<Map> tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'");
+    for (Map table in tables) {
+      // Don't drop the system table
+      if (table['name'] != 'android_metadata' && table['name'] != 'sqlite_sequence' && table['name'] != 'habits' && table['name'] != 'days'  && table['name'] != 'habit_history'  && table['name'] != 'settings') {
+        await db.execute('DROP TABLE ${table['name']}');
+      }
+    }
+    print("function clearDatabase() finished");
+  }
+
 
   Future<void> clearAndRebuildDatabase() async {
 
@@ -353,6 +364,17 @@ class DatabaseHelper {
     final db = await database;
 
     await clearDatabase();
+    await createInitialDatabase(db);
+
+  }
+
+  Future<void> clearAndRebuildDatabaseExceptHabits() async {
+
+    print("REMOVING AND REBUILDING DATABASE EXCEPT HABITS");
+
+    final db = await database;
+
+    await clearDatabaseExceptHabits();
     await createInitialDatabase(db);
 
   }

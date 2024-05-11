@@ -1,11 +1,15 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:habit/main.dart';
 import 'package:habit/models/building.dart';
 import 'package:habit/models/tile.dart';
 import 'package:habit/models/unit.dart';
 import 'package:sqflite/sqflite.dart';
 import '../services/database_helper.dart';
 import 'dart:math';
+import 'settings.dart';
+
 
 import 'misc_object.dart';
 
@@ -103,6 +107,18 @@ class Village {
     };
   }
 
+  Future<int> updateToDb() async {
+
+    final db = await DatabaseHelper.instance.database;
+
+    return await db.update(
+        'villages', // table name
+        toMap(),   // values
+        where: 'id = ?', // update where id matches
+        whereArgs: [id] // value for where argument (id of the Attack instance)
+    );
+  }
+
   static Future<void> createInitialVillage(db, int villageId) async {
 
     print("Running function createInitialVillage() for village id ${villageId}");
@@ -167,27 +183,29 @@ class Village {
 
 
     // Add units entries with reference to this village to the units table
-    Unit(villageId: villageId, name: "spearman", image: "assets/spearman.png", level: 1, initialOffence: 10, initialDefence: 10, offence: 10, defence: 10, amount: 5, initialCost: 50, cost: 50, speed: 1, loot: 10).insertToDb();
-    Unit(villageId: villageId, name: "wizard", image: "assets/wizard.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 4, initialCost: 80, cost: 80, speed: 10, loot: 20).insertToDb();
-    Unit(villageId: villageId, name: "spy", image: "assets/spy.png", level: 1, initialOffence: 0, initialDefence: 5, offence: 0, defence: 5, amount: 10, initialCost: 30, cost: 30, speed: 1, loot: 0).insertToDb();
-    Unit(villageId: villageId, name: "catapult", image: "assets/catapult.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 1, initialCost: 300, cost: 300, speed: 1, loot: 50).insertToDb();
-    Unit(villageId: villageId, name: "king", image: "assets/king.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 1, initialCost: 1000, cost: 1000, speed: 1, loot: 100).insertToDb();
+
+    int divider = 10; //set this number to easily change speed of the units for testing (e.g. for value 24, the game can be played hourly instead of daily)
+    Unit(villageId: villageId, name: "spearman", image: "assets/spearman.png", level: 1, initialOffence: 10, initialDefence: 10, offence: 10, defence: 10, amount: 0, initialCost: 20, cost: 20, speed: (30/divider).round(), initialLoot: 10, loot: 10).insertToDb();
+    Unit(villageId: villageId, name: "wizard", image: "assets/wizard.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, initialCost: 30, cost: 30, speed: (30/divider).round(), initialLoot: 20, loot: 20).insertToDb();
+    Unit(villageId: villageId, name: "spy", image: "assets/spy.png", level: 1, initialOffence: 0, initialDefence: 5, offence: 0, defence: 5, amount: 0, initialCost: 30, cost: 30, speed: (10/divider).round(), initialLoot: 0, loot: 0).insertToDb();
+    Unit(villageId: villageId, name: "catapult", image: "assets/catapult.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, initialCost: 80, cost: 80, speed: (80/divider).round(), initialLoot: 50, loot: 50).insertToDb();
+    Unit(villageId: villageId, name: "king", image: "assets/king.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, initialCost: 500, cost: 500, speed: (50/divider).round(), initialLoot: 100, loot: 100).insertToDb();
 
     // Add units to tiles for defending testing
-    Tile(villageId: villageId, rowNum: 16, columnNum: 4, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
-    Tile(villageId: villageId, rowNum: 16, columnNum: 5, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
-    Tile(villageId: villageId, rowNum: 16, columnNum: 6, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
-    Tile(villageId: villageId, rowNum: 16, columnNum: 3, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
-    Tile(villageId: villageId, rowNum: 16, columnNum: 2, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
-    Tile(villageId: villageId, rowNum: 16, columnNum: 1, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
-    Tile(villageId: villageId, rowNum: 16, columnNum: 0, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
-    Tile(villageId: villageId, rowNum: 16, columnNum: 7, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
-    Tile(villageId: villageId, rowNum: 15, columnNum: 3, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
-    Tile(villageId: villageId, rowNum: 15, columnNum: 4, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
-    Tile(villageId: villageId, rowNum: 15, columnNum: 5, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
-    Tile(villageId: villageId, rowNum: 15, columnNum: 6, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
-    Tile(villageId: villageId, rowNum: 15, columnNum: 7, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
-    Tile(villageId: villageId, rowNum: 15, columnNum: 8, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
+    // Tile(villageId: villageId, rowNum: 16, columnNum: 4, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
+    // Tile(villageId: villageId, rowNum: 16, columnNum: 5, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
+    // Tile(villageId: villageId, rowNum: 16, columnNum: 6, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
+    // Tile(villageId: villageId, rowNum: 16, columnNum: 3, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
+    // Tile(villageId: villageId, rowNum: 16, columnNum: 2, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
+    // Tile(villageId: villageId, rowNum: 16, columnNum: 1, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
+    // Tile(villageId: villageId, rowNum: 16, columnNum: 0, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
+    // Tile(villageId: villageId, rowNum: 16, columnNum: 7, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
+    // Tile(villageId: villageId, rowNum: 15, columnNum: 3, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
+    // Tile(villageId: villageId, rowNum: 15, columnNum: 4, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
+    // Tile(villageId: villageId, rowNum: 15, columnNum: 5, contentType: 'unit', contentId: 2).insertToDb(); // path_bottom_right_corner
+    // Tile(villageId: villageId, rowNum: 15, columnNum: 6, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
+    // Tile(villageId: villageId, rowNum: 15, columnNum: 7, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
+    // Tile(villageId: villageId, rowNum: 15, columnNum: 8, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
 
     print("Function createInitialVillage() finished");
 
@@ -204,9 +222,35 @@ class Village {
     // Retrieve the unit by its ID
     Unit unit = await Unit.getUnitById(id);
 
-    // level it up
-    return await unit.levelUp();
+    Settings settings = await Settings.getSettingsFromDB(db);
+    final double costMultiplier = settings.costMultiplier;
 
+    int baseUpgradeCost = (unit.initialCost *
+        pow(costMultiplier, (unit.level - 1)) +
+        unit.initialCost * pow(costMultiplier, (unit.level))).round();
+
+    int additionalUnitUpgradeCost = unit.amount * (unit.initialCost * pow(costMultiplier, (unit.level)) - unit.initialCost * pow(costMultiplier, (unit.level - 1))).round();
+
+    int totalUpgradeCost = baseUpgradeCost + additionalUnitUpgradeCost;
+
+    print("base UpgradeCost");
+    print(baseUpgradeCost);
+    print("addit UpgradeCost");
+    print(additionalUnitUpgradeCost);
+
+    print("totalUpgradeCost");
+    print(totalUpgradeCost);
+
+    if (totalUpgradeCost <= coins) {
+
+      coins -= totalUpgradeCost;
+      await updateToDb();
+
+      // level it up
+      return await unit.levelUp();
+    }
+
+    return 0;
   }
 
   Future<void> changeOwner(int owned) async {
@@ -236,8 +280,16 @@ class Village {
     // Retrieve the unit by its ID
     Unit unit = await Unit.getUnitById(id);
 
-    // add it
-    return await unit.addToAmount();
+    if(unit.cost <= coins){
+
+      coins -= unit.cost;
+      await updateToDb();
+
+      // add it
+      return await unit.addToAmount();
+    }
+
+    return 0;
 
   }
 
@@ -322,19 +374,50 @@ class Village {
     return level;
   }
 
-  Future<void> upgradeBuildingLevel(Database db, String buildingName) async {
+  Future<Building> getBuilding(String buildingName) async {
 
-    // First, retrieve the current level.
-    int? currentLevel = await getBuildingLevel(buildingName);
+    final db = await DatabaseHelper.instance.database;
+
+    // Query the buildings table for the farm level associated with the given villageId
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+    SELECT * 
+    FROM buildings 
+    WHERE village_id = ? AND name = ?
+  ''', [id, buildingName]);
+
+    Building building = Building.fromMap(maps.first);
+
+    return building;
+  }
+
+  Future<void> upgradeBuildingLevel(Database db, String buildingName, int upgradeCost) async {
+
+    // First, retrieve the building
+    Building building = await getBuilding(buildingName);
+
+    print("upgradecost");
+    print(upgradeCost);
+
+    print("coins");
+    print(coins);
 
     // Check if currentLevel is not null (i.e., a valid level was found).
-    if (currentLevel != null) {
-      // Update the level in the database.
-      await db.rawUpdate('''
+    if (building.level != null) {
+
+      if(upgradeCost <= coins){
+
+        coins -= upgradeCost;
+        await updateToDb();
+
+        // Update the level in the database.
+        await db.rawUpdate('''
       UPDATE buildings 
       SET level = ? 
       WHERE village_id = ? AND name = ?
-    ''', [currentLevel + 1, id, buildingName]);
+    ''', [building.level + 1, id, buildingName]);
+      }
+
+
     } else {
       // Handle error: for example, building not found for the given villageId and buildingName.
       throw Exception('Building $buildingName not found for villageId $id');
@@ -706,7 +789,7 @@ class Village {
   // HABIT COMPLETION (main.dart)
 
   // Get the sum of all the townhalls to get the total reward factor
-  static Future<double> getTotalRewardFactor() async {
+  static Future<int> getTotalRewardFactor() async {
     final db = await DatabaseHelper.instance.database;
 
     final result = await db.rawQuery('''
@@ -719,11 +802,11 @@ class Village {
     print(result);
 
     if(result[0]['totalSum'] == null){
-      return 1.00;
+      return 1;
     }
 
     int townHallSum = result[0]['totalSum'] as int;
-    double totalRewardFactor = 1 + townHallSum * 0.2;
+    int totalRewardFactor = 1 * townHallSum;
     return totalRewardFactor;
 
   }
@@ -740,8 +823,10 @@ class Village {
   ''');
 
     int totalTownHallSum = townHallLevels.fold(0, (sum, village) => sum + village['town_hall_level'] as int);
-    double totalRewardFactor = 1 + totalTownHallSum * 0.2;
-    double totalCoinsEarned = totalRewardFactor * difficulty;
+
+    // total reward factor is the townhallsum multiplied by the number of villages
+    int totalRewardFactor = totalTownHallSum * townHallLevels.length;
+    int totalCoinsEarned = totalRewardFactor * difficulty;
 
 
     print(totalRewardFactor);
@@ -752,8 +837,17 @@ class Village {
       int villageId = village['id'];
       int townHallLevel = village['town_hall_level'];
 
+      print("townhalllevel");
+      print(townHallLevel);
+
       // Calculate coins for this village based on its proportion of the total town hall sum.
       int coinsForThisVillage = ((townHallLevel / totalTownHallSum) * totalCoinsEarned).round();
+
+      print("coinsForThisVillage");
+      print(coinsForThisVillage);
+
+      print(totalCoinsEarned);
+
 
       print("----");
       print(villageId);
@@ -832,7 +926,7 @@ class Village {
     print(randomNumber);
     List buildingTypes = ['town_hall', 'farm'];
 
-    await upgradeBuildingLevel(db, buildingTypes[randomNumber]);
+    await upgradeBuildingLevel(db, buildingTypes[randomNumber], 0);
 
     return buildingTypes[randomNumber];
   }
@@ -859,10 +953,10 @@ class Village {
 
     //// DIT MAG WEG NA TESTING
     // Calculate and print the probability for each unit
-    for (var i = 0; i < unitList.length; i++) {
-      double probability = weights[i] / totalWeight;
-      print('The odds of ${unitList[i].name} being created are ${probability * 100}%');
-    }
+    // for (var i = 0; i < unitList.length; i++) {
+    //   double probability = weights[i] / totalWeight;
+    //   print('The odds of ${unitList[i].name} being created are ${probability * 100}%');
+    // }
     ////
 
     // Generate a random number
@@ -884,13 +978,15 @@ class Village {
   }
 
   Future<Map> trainEnemyUnit() async{
+
+    print('Running function trainEnemyUnits()');
     List<Unit> unitList = await getUnits();
 
     // The odds of a unit to be added is inversely proportional to their cost.
     // So units with a high cost have a lower chance of being added.
 
     // A unit can only be trained if its level is below the max level of 10
-    unitList.removeWhere((unit) => unit.level >= 10);
+    unitList.removeWhere((unit) => unit.level >= 20);
 
     if(unitList.isEmpty){
       return {'villageName':name, 'unit': 'all_units_max_level'};
@@ -911,10 +1007,10 @@ class Village {
 
     //// DIT MAG WEG NA TESTING
     // Calculate and print the probability for each unit
-    for (var i = 0; i < unitList.length; i++) {
-      double probability = weights[i] / totalWeight;
-      print('The odds of ${unitList[i].name} being leveled up are ${probability * 100}%');
-    }
+    // for (var i = 0; i < unitList.length; i++) {
+    //   double probability = weights[i] / totalWeight;
+    //   print('The odds of ${unitList[i].name} being leveled up are ${probability * 100}%');
+    // }
     ////
 
     // Generate a random number
@@ -934,5 +1030,72 @@ class Village {
     return {};
   }
 
+
+  // Temporary testing function
+  static Future<void> runSimulation() async {
+    int totalSeconds = 0;
+    List<Map<String, dynamic>> info = [];
+
+    int iteration = 0;
+
+    Village village = await Village.getVillageById(2);
+
+    // Create a timer that ticks every minute
+    // Timer.periodic(Duration(seconds: 10), (Timer timer) {
+    //   // Print 'test' every minute
+    //   // Increment the minute counter
+    //   totalSeconds += 10;
+    //
+    //   print("calculating events: $totalSeconds");
+    //   calculateEvents();
+    //
+    //
+    //   // If 60 minutes have passed, cancel the timer
+    //   if (totalSeconds >= 600) {
+    //     timer.cancel();
+    //   }
+    // });
+
+    Timer.periodic(Duration(seconds: 30), (Timer timer) async {
+      // Print 'test' every minute
+      totalSeconds += 30;
+
+      print("1 minute has passed: ${totalSeconds +10}");
+      calculateEvents();
+
+      // Ensure there is a map available at the current iteration index
+      if (info.length <= iteration) {
+        info.add({});  // Add a new map if the current iteration index does not exist
+      }
+
+      info[iteration]['iteration'] = iteration;
+      info[iteration]['time_passted'] = totalSeconds;
+
+      info[iteration]['town_hall'] = await village.getBuildingLevel("town_hall");
+      info[iteration]['farm'] = await village.getBuildingLevel("farm");
+
+      List<Unit> Units = await village.getUnits();
+
+      for(Unit unit in Units){
+
+        print(unit.name);
+        info[iteration]['${unit.name}_level'] = unit.level;
+        info[iteration]['${unit.name}_amount'] = unit.amount;
+
+      }
+
+      // If 60 minutes have passed, cancel the timer
+      if (totalSeconds >= 600) {
+        timer.cancel();
+      }
+
+      for(int b = 0; b < info.length ; b++){
+        print(info[b]);
+      }
+
+      iteration++;
+    });
+
+  }
 
 }

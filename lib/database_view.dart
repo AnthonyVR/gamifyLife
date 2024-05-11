@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import '/services/database_helper.dart';
 
@@ -12,14 +15,39 @@ class _DatabaseViewState extends State<DatabaseView> {
   List<Map<String, dynamic>> _selectedTableData = [];
   String? _selectedTable;
 
-  int? selectedVersion; // Holds the selected backup version
-  final List<int> availableVersions = List.generate(31, (index) => index + 1);
+  String? selectedVersion; // Holds the selected backup version
+  late List<String> availableVersions = ["hey", "hoi"]; //List.generate(31, (index) => index + 1);
 
   @override
   void initState() {
     super.initState();
     _loadTables();
+    _loadBackupVersions();
   }
+
+  Future<void> _loadBackupVersions() async {
+    final directory = await getApplicationDocumentsDirectory();
+    final backupDirectory = Directory('${directory.path}');
+    if (!backupDirectory.existsSync()) {
+      print("Backup directory does not exist at ${backupDirectory.path}");
+      return;
+    }
+
+    final files = backupDirectory.listSync();
+    print("Looking for backups in directory: ${backupDirectory.path}"); // Directory being scanned
+    files.forEach((file) {
+      print("Found file: ${file.path}"); // Each file found
+    });
+
+    setState(() {
+      availableVersions = files
+          .where((item) => FileSystemEntity.isFileSync(item.path))
+          .map((item) => item.path.split('/').last)
+          .toList().reversed.toList();
+    });
+  }
+
+
 
   Future<void> _loadTables() async {
     final db = await DatabaseHelper.instance.database;
@@ -43,37 +71,36 @@ class _DatabaseViewState extends State<DatabaseView> {
       appBar: AppBar(title: Text("Database Viewer")),
       body: Column(
         children: [
-          DropdownButton<int>(
+          DropdownButton<String>(
             value: selectedVersion,
             hint: Text("Select Version"),
-            onChanged: (int? newValue) {
+            onChanged: (String? newValue) {
               setState(() {
                 selectedVersion = newValue;
               });
             },
-            items: availableVersions.map<DropdownMenuItem<int>>((int value) {
-              return DropdownMenuItem<int>(
-                value: value,
-                child: Text("Version $value"),
+            items: availableVersions.map<DropdownMenuItem<String>>((String fileName) {
+              return DropdownMenuItem<String>(
+                value: fileName,
+                child: Text(fileName),
               );
             }).toList(),
           ),
           ElevatedButton(
-              onPressed: selectedVersion != null ? () async {
-                try {
-                  String status = await DatabaseHelper.instance.restoreDatabaseFromBackup(selectedVersion!);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text(status),
-                  ));
-                  setState(() {
-                  });
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text("Failed to restore database: $e"),
-                  ));
-                }
-              } : null,
-              child: Text("Restore database")),
+            onPressed: selectedVersion != null ? () async {
+              try {
+                String status = await DatabaseHelper.instance.restoreDatabaseFromBackup(selectedVersion!);
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(status),
+                ));
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text("Failed to restore database: $e"),
+                ));
+              }
+            } : null,
+            child: Text("Restore database"),
+          ),
           Divider(),
           Text("Currently loaded database"),
           DropdownButton<String>(

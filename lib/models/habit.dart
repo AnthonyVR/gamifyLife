@@ -1,3 +1,7 @@
+import 'package:sqflite/sqflite.dart';
+import '../services/database_helper.dart';
+
+
 class Habit {
   int id;
   String title;
@@ -60,4 +64,18 @@ class Habit {
         saturday = map['saturday'],
         sunday = map['sunday'],
         created = map['created'];// Initialize other properties
+
+
+  Future<int> updateToDb() async {
+
+    Database db = await DatabaseHelper.instance.database;
+
+    return await db.update(
+        'habits', // table name
+        toMap(),   // values
+        where: 'id = ?', // update where id matches
+        whereArgs: [id] // value for where argument (id of the Attack instance)
+    );
+  }
+
 }

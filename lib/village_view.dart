@@ -71,36 +71,42 @@ class _VillageViewState extends State<VillageView> {
       appBar: VillageAppBar(
         getVillage: _getVillage,
       ),
-      body: FutureBuilder<Village?>(
-        future: _villageFuture,
-        builder: (BuildContext context, AsyncSnapshot<Village?> villageSnapshot) {
-          if (villageSnapshot.connectionState == ConnectionState.done) {
-            if (!villageSnapshot.hasData || villageSnapshot.data == null) {
-              return Center(child: Text('Error loading village!'));
-            }
-
-            _village = villageSnapshot.data; // Assign to the local variable
-
-            return FutureBuilder<Map<int, Map<int, Map<String, dynamic>>>>(
-              future: _village!.fetchTiles(),
-              builder: (BuildContext context, AsyncSnapshot<Map<int, Map<int, Map<String, dynamic>>>> tileSnapshot) {
-                if (tileSnapshot.connectionState == ConnectionState.done) {
-                  if (!tileSnapshot.hasData) {
-                    return Center(child: Text('Error loading tiles!'));
-                  }
-                  // Render the GridView
-                  Map<int, Map<int, Map<String, dynamic>>> tileMap = tileSnapshot.data!;
-                  return _buildTileGridView(tileMap);
-                } else {
-                  return Center(child: CircularProgressIndicator());
-                }
-              },
-            );
-          } else {
-            return Center(child: CircularProgressIndicator());
-          }
+      body: RefreshIndicator(
+        onRefresh: () async{
+          setState(() {
+          });
         },
-      ),
+        child: FutureBuilder<Village?>(
+          future: _villageFuture,
+          builder: (BuildContext context, AsyncSnapshot<Village?> villageSnapshot) {
+            if (villageSnapshot.connectionState == ConnectionState.done) {
+              if (!villageSnapshot.hasData || villageSnapshot.data == null) {
+                return Center(child: Text('Error loading village!'));
+              }
+
+              _village = villageSnapshot.data; // Assign to the local variable
+
+              return FutureBuilder<Map<int, Map<int, Map<String, dynamic>>>>(
+                future: _village!.fetchTiles(),
+                builder: (BuildContext context, AsyncSnapshot<Map<int, Map<int, Map<String, dynamic>>>> tileSnapshot) {
+                  if (tileSnapshot.connectionState == ConnectionState.done) {
+                    if (!tileSnapshot.hasData) {
+                      return Center(child: Text('Error loading tiles!'));
+                    }
+                    // Render the GridView
+                    Map<int, Map<int, Map<String, dynamic>>> tileMap = tileSnapshot.data!;
+                    return _buildTileGridView(tileMap);
+                  } else {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                },
+              );
+            } else {
+              return Center(child: CircularProgressIndicator());
+            }
+          },
+        ),
+      )
     );
   }
 
@@ -261,7 +267,12 @@ class _VillageViewState extends State<VillageView> {
 
   Future<void> placeUnitInVillage(int? id, int row, int column) async {
 
-    _village?.placeTileInVillage(id!, row, column, "unit");
+    int? villageCapacity = await _village?.getCapacity();
+    int? villagePopulation = await _village?.getPopulation();
+
+    if(villagePopulation! < villageCapacity!){
+      _village?.placeTileInVillage(id!, row, column, "unit");
+    }
   }
 
   Future<void> removeUnitFromVillage(int row, int column) async {

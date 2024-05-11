@@ -33,11 +33,13 @@ class HabitListState extends State<HabitList> {
   void _editHabit(BuildContext context, int index) {
     Habit habit = habits[index];
 
+    print("editing habit");
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
 
-        return HabitEditor(habit: habit);
+        return HabitEditor(habitId: habit.id);
       },
     );
   }
@@ -73,7 +75,8 @@ class HabitListState extends State<HabitList> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(habits[index].title),
-                      Text('Difficulty: ${habits[index].difficulty} coins'),
+                      Text('Difficulty: ${habits[index].difficulty}'),
+
                       // Display the days fields here
                       Text('${activeDays.join(', ')}'),
                       Text('Created: ${habits[index].created}'),

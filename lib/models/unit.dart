@@ -16,6 +16,7 @@ class Unit {
   int level;
   final int initialOffence;
   final int initialDefence;
+  final int initialLoot;
   int offence;
   int defence;
   final int speed;
@@ -34,6 +35,7 @@ class Unit {
     required this.level,
     required this.initialOffence,
     required this.initialDefence,
+    required this.initialLoot,
     required this.offence,
     required this.defence,
     required this.speed,
@@ -54,6 +56,7 @@ class Unit {
       'level': level,
       'initial_offence': initialOffence,
       'initial_defence': initialDefence,
+      'initial_loot': initialLoot,
       'offence': offence,
       'defence': defence,
       'speed': speed,
@@ -78,6 +81,7 @@ class Unit {
       level: map['level'],
       initialOffence: map['initial_offence'],
       initialDefence: map['initial_defence'],
+      initialLoot: map['initial_loot'],
       offence: map['offence'],
       defence: map['defence'],
       speed: map['speed'],
@@ -99,6 +103,7 @@ class Unit {
           level INTEGER NOT NULL,
           initial_offence INTEGER NOT NULL,
           initial_defence INTEGER NOT NULL,
+          initial_loot INTEGER NOT NULL,
           offence INTEGER NOT NULL,
           defence INTEGER NOT NULL,
           speed INTEGER NOT NULL,
@@ -130,6 +135,7 @@ class Unit {
     offence = (initialOffence * pow(costMultiplier, level -1)).round();
     defence = (initialDefence * pow(costMultiplier, level -1)).round();
     cost = (initialCost * pow(costMultiplier, level -1)).round();
+    loot = (initialLoot * pow(costMultiplier, level -1)).round();
 
     //upgradeCost = initialCost * (costMultiplier ^ (level - <span style="color: #6897bb;">1</span>))
 

@@ -1,3 +1,3 @@
 class GlobalVariables {
-  static String appMode = 'prod'; // test | prod
+  static String appMode = 'test'; // test | prod
 }

@@ -55,16 +55,12 @@ Future<void> calculateEvents() async {
   print("RUNNING CALCULATEEVENTS updated");
   try {
 
-    print("wooooooooooooowieeee");
     // Add game_opened entry
     Event gameOpened = Event(eventType: 'game_opened', timestamp: DateTime.now(), info: {});
-    print("wooooooooooooow2");
-    print("wooooooooooooow3");
+
     await Attack.handlePendingAttacks();
-    print("wooooooooooooow4");
     var eventsOccurred = await gameOpened.calculateEvents();
-    print("wooooooooooooow5");
-    await gameOpened.insertToDb(); // Ensure this is awaited if it's async
+    //await gameOpened.insertToDb(); // Ensure this is awaited if it's async
 
 
   } catch (e) {
@@ -116,6 +112,7 @@ void checkAndUpdateDayTable() async {
   var row = await dbHelper.dayDao.queryDay(formattedDate);
   // If the row does not exist, insert it
   if (row.isEmpty) {
+    print("inserting new row");
     await dbHelper.dayDao.insertDay({'date': formattedDate, 'weekday': weekday});
   }
 }
@@ -203,17 +200,17 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void _editHabit(BuildContext context, int index) {
-    Habit habit = habits[index];
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-
-        return HabitEditor(habit: habit);
-      },
-    );
-  }
+  // void _editHabit(BuildContext context, int index) {
+  //   Habit habit = habits[index];
+  //
+  //   showDialog(
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //
+  //       return HabitEditor(habit: habit);
+  //     },
+  //   );
+  // }
 
   void updateDate(DateTime newDate) async {
     setState(() {
@@ -227,9 +224,15 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _goToPreviousDate() async {
+    print('running gotopreviousdate');
+    print(currentDate);
     String previousDateString = await dbHelper.dayDao.getPreviousDate(DateFormat('yyyy-MM-dd').format(currentDate));
+
+    print(previousDateString);
     DateTime previousDate = DateFormat('yyyy-MM-dd').parse(previousDateString);
+    print(previousDate);
     if (previousDate != currentDate) {
+      print("updating date");
       updateDate(previousDate);
     }
   }
@@ -259,30 +262,32 @@ class _HomePageState extends State<HomePage> {
               Expanded(
                 flex: 8,  // this will allocate 3 parts of the space to this child
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
-                      icon: Icon(Icons.arrow_left),
+                      icon: Icon(Icons.arrow_left, color: Colors.white60,),
                       onPressed: () async {
                         await _goToPreviousDate();
                       },
                     ),
                     Expanded(  // New line
-                      child: Text(readableDate),
+                      child: Text(readableDate,
+                      textAlign: TextAlign.center, style: TextStyle(color: Colors.white),),
                     ),
                     IconButton(
-                      icon: Icon(Icons.arrow_right),
+                      icon: Icon(Icons.arrow_right, color: Colors.white60,),
                       onPressed: () async {
                         await _goToNextDate();
                       },
                     ),
-                    IconButton(
-                      icon: Icon(Icons.access_alarm),
-                      onPressed: () async {
-                        print("running calculateEvents() from alarm button");
-                        await calculateEvents();
-                      },
-                    ),
+                    SizedBox(width: 50)
+                    // IconButton(
+                    //   icon: Icon(Icons.access_alarm),
+                    //   onPressed: () async {
+                    //     print("running calculateEvents() from alarm button");
+                    //     await calculateEvents();
+                    //   },
+                    // ),
                   ],
                 ),
               ),
@@ -371,25 +376,46 @@ class _HomePageState extends State<HomePage> {
                 );
               },
             ),
+            // ListTile(
+            //   title: Text('Restore database to last version (NOT WORKING)'),
+            //   onTap: () async {
+            //     try {
+            //       await DatabaseHelper.instance.restoreDatabaseFromBackup(DateTime.now().toString());
+            //       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            //         content: Text("Database restored successfully."),
+            //       ));
+            //     } catch (e) {
+            //       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            //         content: Text("Failed to restore database: $e"),
+            //       ));
+            //     }
+            //   },
+            // ),
             ListTile(
-              title: Text('Restore database to last version'),
+              title: Text("Backup database"),
               onTap: () async {
-                try {
-                  await DatabaseHelper.instance.restoreDatabaseFromBackup(3);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text("Database restored successfully."),
-                  ));
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text("Failed to restore database: $e"),
-                  ));
-                }
+                DateTime currentTime = DateTime.now();
+                await (DatabaseHelper.instance.backupDatabase(currentTime));
               },
             ),
-            GlobalVariables.appMode == 'test' ? ListTile(
+            GlobalVariables.appMode == 'test' || true ? ListTile(
               title: Text('Remove AND Rebuild ALL initial database contents'),
               onTap: () {
                 dbHelper.clearAndRebuildDatabase();
+                setState(() {});
+              },
+            ) : SizedBox(),
+            GlobalVariables.appMode == 'test' || true ? ListTile(
+              title: Text('Remove AND Rebuild everything except habits and settings'),
+              onTap: () {
+                dbHelper.clearAndRebuildDatabaseExceptHabits();
+                setState(() {});
+              },
+            ) : SizedBox(),
+            GlobalVariables.appMode == 'test' || true ? ListTile(
+              title: Text('Update day table'),
+              onTap: () {
+                checkAndUpdateDayTable();
                 setState(() {});
               },
             ) : SizedBox(),
@@ -413,7 +439,6 @@ class _HomePageState extends State<HomePage> {
                   setState(() {
                   });
                 }
-              },
             ) : SizedBox(),
             GlobalVariables.appMode == 'test' ? ListTile(
               title: Text('Delete habit history'),
@@ -427,6 +452,14 @@ class _HomePageState extends State<HomePage> {
               title: Text('Delete all habits'),
               onTap: () {
                 dbHelper.habitDao.removeAllHabits();
+                setState(() {
+                });
+              },
+            ): SizedBox(),
+            GlobalVariables.appMode == 'test' ? ListTile(
+              title: Text('Run simulation'),
+              onTap: () {
+                Village.runSimulation();
                 setState(() {
                 });
               },
@@ -465,163 +498,171 @@ class _HomePageState extends State<HomePage> {
           ],
         )
       ),
-      body: FutureBuilder<List<Habit>>(
-        future: dbHelper.habitDao.getHabits(),
-        builder: (BuildContext context, AsyncSnapshot<List<Habit>> snapshot) {
+      body: RefreshIndicator(
+        onRefresh: () async {
+          setState(() {
+          });
+        },
+        child: FutureBuilder<List<Habit>>(
+          future: dbHelper.habitDao.getHabits(),
+          builder: (BuildContext context, AsyncSnapshot<List<Habit>> snapshot) {
 
-          if (snapshot.hasData) {
-            return StreamBuilder<List<Map<String, dynamic>>>(
-              stream: dbHelper.habitHistoryDao.getHabitsForToday(date, weekday).asStream(),
-              builder: (BuildContext context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
+            if (snapshot.hasData) {
 
-                if (snapshot.hasData) {
-                  return ListView.builder(
-                    itemCount: snapshot.hasData ? snapshot.data!.length : 0,
-                    itemBuilder: (context, index) {
-                      bool isCompleted = snapshot.data![index]['completedCount'] >= snapshot.data![index][weekday];
-                      double completedpercentage =  snapshot.data![index]['completedCount'] / snapshot.data![index][weekday] * 10;
-                      int difficulty = snapshot.data![index]['difficulty'];
+              return GestureDetector(
+                onHorizontalDragEnd: (DragEndDetails details) {
+                  if (details.primaryVelocity! > 0) {
+                    // User swiped Right
+                    _goToPreviousDate();
+                  } else if (details.primaryVelocity! < 0) {
+                    // User swiped Left
+                    _goToNextDate();
+                  }
+                  setState(() {});
+                },
+                child: StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: dbHelper.habitHistoryDao.getHabitsForToday(date, weekday).asStream(),
+                  builder: (BuildContext context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
 
-                      return ListTile(
-                          title: Row(
-                            children: <Widget>[
-                              Container(
-                                width: 20,
-                                height: 20,
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: getDifficultyColor(difficulty),
-                                    width: isCompleted? 10 : completedpercentage, // Set the width of the border to your desired value
-                                  ),
-                                  //color: getDifficultyColor(difficulty),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              Container(
-                                width: 40, // Set width for Text
-                                child: Text(
-                                  ' $difficulty',
-                                  style: TextStyle(
-                                    color: isCompleted ? Colors.grey : Colors.yellow,
-                                    fontSize: 24,
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: Container(
-                                  child: Text(
-                                    '${snapshot.data![index]['title']}',
-                                    style: TextStyle(
-                                      color: isCompleted ? Colors.grey : Colors.white,
-                                      fontSize: 18,
+                    if (snapshot.hasData) {
+                      return ListView.builder(
+                        itemCount: snapshot.hasData ? snapshot.data!.length + 1 : 0,  // Increment the itemCount by 1
+                        itemBuilder: (context, index) {
+                          if (index == snapshot.data!.length) {  // Check if the index corresponds to the last item
+                            // Return an empty ListTile or any other widget you want to appear as the last item
+                            return ListTile();
+                          }
+
+                          // Existing code for other items
+                          bool isCompleted = snapshot.data![index]['completedCount'] >= snapshot.data![index][weekday];
+                          double completedPercentage = snapshot.data![index]['completedCount'] / snapshot.data![index][weekday] * 10;
+                          int difficulty = snapshot.data![index]['difficulty'];
+
+                          return ListTile(
+                              title: Row(
+                                children: <Widget>[
+                                  Container(
+                                    width: 20,
+                                    height: 20,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: getDifficultyColor(difficulty),
+                                        width: isCompleted ? 10 : completedPercentage, // Adjust the border width
+                                      ),
+                                      shape: BoxShape.circle,
                                     ),
-                                    softWrap: true,
                                   ),
-                                ),
-                              ),
-                              Container(
-                                width: 40, // Set width for IconButton
-                                child: IconButton(
-                                  icon: Icon(Icons.undo_outlined,
-                                      color: isCompleted ? Colors.grey : Colors.white, size: 20),
-                                  onPressed: () async{
-
-                                    await playerModel.removeScore(snapshot.data![index]['difficulty']);
-                                    await dbHelper.habitHistoryDao.undo(snapshot.data![index]['id'], date);
-
-                                    // same function as when you complete the habit but then with a negative number
-                                    await Village.divideCoins(-snapshot.data![index]['difficulty']);
-
-                                    setState(() {
-                                    });
-
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                          trailing: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: <Widget>[
-                              Expanded(
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Container(
-                                      width: 30, // Set width for Text
-                                      child: Text('x${snapshot.data![index]['completedCount']} = ',
-                                          style: TextStyle(
-                                              color: isCompleted ? Colors.grey : Colors.white)),
-                                    ),
-                                    Container(
-                                      width: 20, // Set width for SVG
-                                      child: SvgPicture.asset(
-                                        'assets/coins.svg',
-                                        height: 20,
-                                        width: 20,
+                                  Container(
+                                    width: 40, // Width for the Text widget
+                                    child: Text(' ${snapshot.data![index]['completedCount']}x',
+                                        style: TextStyle(fontSize: 24, color: isCompleted ? Colors.grey : Colors.white)),
+                                  ),
+                                  Expanded(
+                                    child: Container(
+                                      child: Text(
+                                        '${snapshot.data![index]['title']}',
+                                        style: TextStyle(
+                                          color: isCompleted ? Colors.grey : Colors.white,
+                                          fontSize: 18,
+                                        ),
+                                        softWrap: true,
                                       ),
                                     ),
-                                    Container(
-                                      width: 28, // Set width for Text
-                                      child: Text(
-                                          ' ${snapshot.data![index]['difficulty'] * snapshot.data![index]['completedCount']} ',
-                                          style: TextStyle(
-                                              color: isCompleted ? Colors.grey : Colors.white)),
+                                  ),
+                                  Container(
+                                    width: 30, // Width for IconButton
+                                    child: IconButton(
+                                      icon: Icon(Icons.undo_outlined, color: isCompleted ? Colors.grey : Colors.white, size: 20),
+                                      onPressed: () async {
+                                        await playerModel.removeScore(snapshot.data![index]['difficulty']);
+                                        await dbHelper.habitHistoryDao.undo(snapshot.data![index]['id'], date);
+                                        await Village.divideCoins(-snapshot.data![index]['difficulty']);
+                                        setState(() {});
+                                      },
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          onTap: isCompleted ? null : () async {
-                            // insert the habit completion into the Habit_History table
-                            await DatabaseHelper.instance.habitHistoryDao.insertHabitCompletion({
-                            DatabaseHelper.columnHabitID: snapshot.data![index]['id'],
-                            DatabaseHelper.columnDate: date,
-                            DatabaseHelper.columnCount: 1,
-                            });
-
-                            // update the coins in the player table
-                            //await playerModel.addRewardFactor(snapshot.data![index]['difficulty']);
-                            await playerModel.addScore(snapshot.data![index]['difficulty']);
-                            await Village.divideCoins(snapshot.data![index]['difficulty']);
-
-                            setState(() {
-                            });
-                            // Your onTap code here
-                          },
-                          onLongPress: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => HabitDetails(id: snapshot.data![index]['id'])),
-                            );
-                          }
+                              trailing: Column(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: <Widget>[
+                                  Expanded(
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: <Widget>[
+                                        Container(
+                                          width: 40, // Width for Text
+                                          child: Text(
+                                            ' $difficulty',
+                                            style: TextStyle(
+                                              color: isCompleted ? Colors.grey : Colors.yellow,
+                                              fontSize: 24,
+                                            ),
+                                          ),
+                                        ),
+                                        Container(
+                                          width: 20, // Width for SVG
+                                          child: SvgPicture.asset(
+                                            'assets/coins.svg',
+                                            height: 20,
+                                            width: 20,
+                                          ),
+                                        ),
+                                        Container(
+                                          width: 28, // Width for Text
+                                          child: Text(
+                                              ' ${snapshot.data![index]['difficulty'] * snapshot.data![index]['completedCount']} ',
+                                              style: TextStyle(fontSize: 24, color: isCompleted ? Colors.grey : Colors.white)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              onTap: isCompleted ? null : () async {
+                                await DatabaseHelper.instance.habitHistoryDao.insertHabitCompletion({
+                                  DatabaseHelper.columnHabitID: snapshot.data![index]['id'],
+                                  DatabaseHelper.columnDate: date,
+                                  DatabaseHelper.columnCount: 1,
+                                });
+                                await playerModel.addScore(snapshot.data![index]['difficulty']);
+                                await Village.divideCoins(snapshot.data![index]['difficulty']);
+                                setState(() {});
+                              },
+                              onLongPress: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => HabitDetails(id: snapshot.data![index]['id'])),
+                                );
+                              }
+                          );
+                        },
                       );
-                    },
-                  );
-                } else if (snapshot.hasError) {
-                  return Text("${snapshot.error}");
-                }
+                    } else if (snapshot.hasError) {
+                      return Text("${snapshot.error}");
+                    }
 
-                // By default, show a loading spinner.
-                return CircularProgressIndicator();
+                    // By default, show a loading spinner.
+                    return CircularProgressIndicator();
 
-              },
-            );
+                  },
+                ),
+              );
 
-          } else if (snapshot.hasError) {
-            return Text("An error occurred: ${snapshot.error}");
-          }
+            } else if (snapshot.hasError) {
+              return Text("An error occurred: ${snapshot.error}");
+            }
 
-          // While fetching, show a loading spinner.
-          return CircularProgressIndicator();
-        },
+            // While fetching, show a loading spinner.
+            return CircularProgressIndicator();
+          },
+        ),
       ),
       floatingActionButton: Stack(
         children: <Widget>[
           Positioned(
             right: 20,
-            bottom: 100,
+            bottom: 90,
             child: FloatingActionButton(
               backgroundColor: Colors.orange,
               onPressed: () async {
@@ -651,9 +692,9 @@ class _HomePageState extends State<HomePage> {
                       return AlertDialog(
                         content: Align(
                           alignment: Alignment.topCenter,
-                          child: FutureBuilder<double>(
+                          child: FutureBuilder<int>(
                             future: Village.getTotalRewardFactor(),
-                            builder: (BuildContext context, AsyncSnapshot<double> snapshot) {
+                            builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
                               if (snapshot.connectionState == ConnectionState.waiting) {
                                 return CircularProgressIndicator();
                               } else if (snapshot.hasError) {
@@ -695,16 +736,16 @@ class _HomePageState extends State<HomePage> {
                             '${snapshot.data}',  // Display your data
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 24,  // Set the font size
+                              fontSize: 30,  // Set the font size
                             ),
                           );
                         }
                       },
                     ),
                     SizedBox(width: 10),  // Space between the icon and text
-                    FutureBuilder<double>(
+                    FutureBuilder<int>(
                       future: Village.getTotalRewardFactor(),
-                      builder: (BuildContext context, AsyncSnapshot<double> snapshot) {
+                      builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
                         if (snapshot.connectionState == ConnectionState.waiting) {
                           return CircularProgressIndicator();
                         } else if (snapshot.hasError) {
@@ -740,6 +781,7 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     GestureDetector(
                       onTap: () {
+                        //calculateEvents();
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -766,14 +808,14 @@ class _HomePageState extends State<HomePage> {
                               right: -10,  // <-- Now you can use negative values
                               child: Container(
                                 padding: EdgeInsets.all(6),  // Adjust the padding as needed
-                                decoration: BoxDecoration(
+                                decoration: const BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: Colors.red,
                                 ),
                                 alignment: Alignment.center,
                                 child: Text(
                                   '$eventsOccurred', // your variable here
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 20,  // Adjust font size as needed
                                   ),
@@ -792,7 +834,8 @@ class _HomePageState extends State<HomePage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     GestureDetector(
-                      onTap: () {
+                      onTap: () async {
+                        await calculateEvents();
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -815,7 +858,8 @@ class _HomePageState extends State<HomePage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     GestureDetector(
-                      onTap: () {
+                      onTap: () async {
+                        await calculateEvents();
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -838,7 +882,8 @@ class _HomePageState extends State<HomePage> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     GestureDetector(
-                      onTap: () {
+                      onTap: () async {
+                        await calculateEvents();
                         Navigator.push(
                           context,
                           MaterialPageRoute(

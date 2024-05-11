@@ -218,7 +218,7 @@ class Attack {
         await attack.handleIncomingAttack();
       }
 
-      // if the attack has returned home, add the remaining units back in their village
+      // if the attack has returned home, add the remaining units back in their village and add the loot
       if (attack.completed == 1 && DateTime.now().isAfter(attack.returnedAt!)) {
 
         print('attack id: ${attack.id}');
@@ -245,6 +245,15 @@ class Attack {
           print('sourceUnitsAfter is null for attack id: ${attack.id}');
         }
 
+        // add loot to village
+        if(attack.loot != 0){
+          Village sourceVillage = await Village.getVillageById(attack.sourceVillageId);
+
+          sourceVillage.coins += attack.loot!;
+
+          sourceVillage.updateToDb();
+        }
+
         print("updating the attack??");
         // update the attack as "completed 2"
         await db.update('attacks', {'completed': 2}, where: 'id = ?', whereArgs: [attack.id]);
@@ -265,6 +274,7 @@ class Attack {
       return {
         'unit': unit,
         'name': unit.name,
+        'loot': unit.loot,
         'amount': unit.amount,
       };
     }).toList();
@@ -279,6 +289,7 @@ class Attack {
       sourceUnitsBeforeDecoded.add({
         'unit': unit,
         'name': unitMap['name'],
+        'loot': unitMap['loot'],
         'amount': unitMap['amount'],
       });
     }
@@ -547,10 +558,42 @@ class Attack {
 
     print("Spy interaction completed.");
 
+
     // remove the casualties from the enemy village
     for (var unitData in destinationUnitsAfterList) {
       unitData['unit'].updateAmount(unitData['amount']);
     }
+
+
+    // Functionality for loot
+    print('funcionality for loot');
+
+    int totalLootCapacity = 0;
+
+    print(sourceUnitsAfterList);
+    for (var unitData in sourceUnitsAfterList) {
+      print(totalLootCapacity);
+      print('PRINTING unitdata in for loop');
+      print(unitData);
+      totalLootCapacity += (unitData['amount'] as int) * (unitData['loot'] as int);
+    }
+    print("Total loot capacity: $totalLootCapacity");
+
+    int lootToBeTransferred = min(totalLootCapacity, destinationVillage.coins);
+    print("Loot to be transferred: $lootToBeTransferred");
+
+    loot = lootToBeTransferred;
+
+    destinationVillage.coins -= lootToBeTransferred;  // Subtract loot from defending village
+    //sourceVillage.coins += lootToBeTransferred;      // Add loot to attacking village
+
+    await destinationVillage.updateToDb();
+    //await sourceVillage.updateToDb();
+
+    print("Updated coins in source village: ${sourceVillage.coins}");
+    print("Updated coins in destination village: ${destinationVillage.coins}");
+
+
 
 
     // Functionality for conquering a village
@@ -616,6 +659,7 @@ class Attack {
       sourceUnitsBeforeDecoded.add({
         'unit': unit,
         'name': unitMap['name'],
+        'loot': unitMap['loot'],
         'amount': unitMap['amount'],
       });
     }
@@ -708,7 +752,6 @@ class Attack {
     returnedAt = _calculateArrivalTime(arrivedAt, distanceBetweenVillages, slowestReturnSpeed);
 
     completed = 1;
-    loot = 0;
     damage = "none";
 
     await updateCasualtiesInTilesTable(destinationUnitsAfterList);
@@ -758,7 +801,33 @@ class Attack {
     }
 
 
-    //await destinationVillage.updateBuildingLevel("town_hall", 10);
+    // Functionality for loot
+    print('funcionality for loot');
+
+    int totalLootCapacity = 0;
+
+    print(sourceUnitsAfterList);
+    for (var unitData in sourceUnitsAfterList) {
+      print(totalLootCapacity);
+      print('PRINTING unitdata in for loop');
+      print(unitData);
+      totalLootCapacity += (unitData['amount'] as int) * (unitData['loot'] as int);
+    }
+    print("Total loot capacity: $totalLootCapacity");
+
+    int lootToBeTransferred = min(totalLootCapacity, destinationVillage.coins);
+    print("Loot to be transferred: $lootToBeTransferred");
+
+    loot = lootToBeTransferred;
+
+    destinationVillage.coins -= lootToBeTransferred;  // Subtract loot from defending village
+    //sourceVillage.coins += lootToBeTransferred;      // Add loot to attacking village
+
+    await destinationVillage.updateToDb();
+    //await sourceVillage.updateToDb();
+
+    print("Updated coins in source village: ${sourceVillage.coins}");
+    print("Updated coins in destination village: ${destinationVillage.coins}");
 
 
     // Functionality for conquering a village
@@ -830,7 +899,7 @@ class Attack {
 
   static DateTime _calculateArrivalTime(DateTime currentTime, double distance, int slowestSpeed) {
     final attackDuration = (distance * slowestSpeed).round();
-    return currentTime.add(Duration(seconds: attackDuration)); //CHANGE BACK TO MINUTES
+    return currentTime.add(Duration(minutes: attackDuration)); //CHANGE BACK TO MINUTES
   }
 
   static int _generateLuck() {
@@ -994,6 +1063,7 @@ class Attack {
     return jsonEncode(units.map((unitMap) => {
       'unit_id': unitMap['unit'].id,
       'name': unitMap['unit'].name,
+      'loot': unitMap['unit'].loot,
       'amount': unitMap['amount']
     }).toList());
   }

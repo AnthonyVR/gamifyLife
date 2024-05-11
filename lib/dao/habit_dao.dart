@@ -42,6 +42,8 @@ class HabitDao {
     return await db.update(DatabaseHelper.habitsTable, row, where: '${DatabaseHelper.columnId} = ?', whereArgs: [id]);
   }
 
+
+
   Future<int> delete(int id) async {
     Database db = await dbHelper.database;
     return await db.delete(DatabaseHelper.habitsTable, where: '${DatabaseHelper.columnId} = ?', whereArgs: [id]);
