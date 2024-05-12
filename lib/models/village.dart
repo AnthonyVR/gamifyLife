@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:habit/main.dart';
 import 'package:habit/models/building.dart';
+import 'package:habit/models/player.dart';
 import 'package:habit/models/tile.dart';
 import 'package:habit/models/unit.dart';
 import 'package:sqflite/sqflite.dart';
@@ -20,6 +21,7 @@ class Village {
   final int row;
   final int column;
   int coins;
+  int totalCoinsEarned;
   List<Tile> tiles = [];  // A list to store the tiles associated with this village
 
   Village({
@@ -29,6 +31,7 @@ class Village {
     required this.row,
     required this.column,
     required this.coins,
+    required this.totalCoinsEarned,
     this.tiles = const [],  // Optionally accept a list of tiles in the constructor
   });
 
@@ -77,7 +80,8 @@ class Village {
           owned INTEGER,
           row INTEGER,
           column INTEGER,
-          coins INTEGER
+          coins INTEGER,
+          total_coins_earned INTEGER
       )
     ''');
   }
@@ -91,7 +95,8 @@ class Village {
       owned: map['owned'],
       row: map['row'],
       column: map['column'],
-      coins: map['coins']
+      coins: map['coins'],
+      totalCoinsEarned: map['total_coins_earned']
     );
   }
 
@@ -103,7 +108,8 @@ class Village {
       'owned': owned,
       'row': row,
       'column': column,
-      'coins': coins
+      'coins': coins,
+      'total_coins_earned': totalCoinsEarned
     };
   }
 
@@ -702,7 +708,8 @@ class Village {
         row AS rowNum,
         column AS columnNum,
         owned AS owned,
-        coins AS coins
+        coins AS coins,
+        total_coins_earned AS total_coins_earned
       FROM villages;
       ''');
 
@@ -755,6 +762,7 @@ class Village {
       int columnNum = tile['columnNum'];
       int owned = tile['owned'];
       int coins = tile['coins'];
+      int totalCoinsEarned = tile['total_coins_earned'];
 
       if (!resultMap.containsKey(rowNum)) {
         resultMap[rowNum] = {};
@@ -812,6 +820,41 @@ class Village {
   }
 
   static Future<void> divideCoins(int difficulty) async {
+    final db = await DatabaseHelper.instance.database;
+
+    List<Village> villages = await Village.getPlayerVillages();
+
+    Player player = await DatabaseHelper.instance.playerDao.getPlayer();
+
+
+    int totalCoinsEarned = 0;
+    for(Village village in villages){
+
+      print("running this");
+
+      int? townhallLevel = await village.getBuildingLevel('town_hall');
+      int coinsForThisVillage = townhallLevel! * difficulty;
+
+      totalCoinsEarned += coinsForThisVillage;
+
+      print(totalCoinsEarned);
+
+      village.coins += coinsForThisVillage;
+      village.totalCoinsEarned += coinsForThisVillage;
+
+      village.updateToDb();
+
+    }
+
+    player.totalCoinsEarned += totalCoinsEarned;
+    player.score += difficulty;
+
+    DatabaseHelper.instance.playerDao.updatePlayer(player);
+
+  }
+
+
+  static Future<void> divideCoins_old(int difficulty) async {
     final db = await DatabaseHelper.instance.database;
 
     // Fetch town hall levels of all owned villages.
@@ -901,7 +944,7 @@ class Village {
     ////
 
     // insert to db
-    await Village.insertVillage(db, Village(name: 'Enemy Village $numberOfVillages', owned: 0, row: newRow, column: newColumn, coins: 0));
+    await Village.insertVillage(db, Village(name: 'Enemy Village $numberOfVillages', owned: 0, row: newRow, column: newColumn, coins: 0, totalCoinsEarned: 0));
 
     // Get the ID of the village that has just been inserted in order to call createInitialVillage() with the right ID
     final idResult = await db.rawQuery('SELECT LAST_INSERT_ROWID() as last_id;');

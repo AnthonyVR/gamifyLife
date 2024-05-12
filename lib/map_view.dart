@@ -462,14 +462,6 @@ class _UnitsPopupState extends State<UnitsPopup> {
 }
 
 
-
-
-
-
-
-
-
-
 class ConfirmationPopup extends StatefulWidget {
   final VoidCallback onConfirm;
   final VoidCallback onCancel;

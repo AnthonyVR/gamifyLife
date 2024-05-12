@@ -15,6 +15,7 @@ class _HabitCreatorState extends State<HabitCreator> {
   String title = '';
   int difficulty = 0;
   bool unlimited = false;
+  bool everyDay = false;
 
   Map<String, bool> days = {
     'Monday': false,
@@ -31,11 +32,11 @@ class _HabitCreatorState extends State<HabitCreator> {
     int timesPerDay = 1; // default value
     String created = widget.date;
 
-    print(created);
-
-
     return AlertDialog(
       title: Text('Create Habit'),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20.0), // This rounds the corners of the dialog
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -53,6 +54,28 @@ class _HabitCreatorState extends State<HabitCreator> {
               decoration: InputDecoration(hintText: "Difficulty"),
               keyboardType: TextInputType.number,
             ),
+            SizedBox(height: 30,),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center, // This will center the row contents
+              children: <Widget>[
+                Text("Every day", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),),
+                Checkbox(
+                  value: everyDay,
+                  onChanged: (bool? value) {
+                    setState(() {
+                      everyDay = value!;
+                      days.keys.forEach((day) {
+                        days[day] = value;
+                      });
+                    });
+                  },
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                SizedBox(width: 8), // Space between checkbox and text
+              ],
+            ),
             ...days.keys.map((day) {
               return CheckboxListTile(
                 title: Text(day),
@@ -60,8 +83,13 @@ class _HabitCreatorState extends State<HabitCreator> {
                 onChanged: (bool? value) {
                   setState(() {
                     days[day] = value!;
+                    everyDay = days.values.every((v) => v == true);
                   });
                 },
+                checkboxShape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(2), // Slightly rounded corners for checkboxes
+                ),
+                controlAffinity: ListTileControlAffinity.trailing,
               );
             }).toList(),
             Row(
@@ -103,9 +131,7 @@ class _HabitCreatorState extends State<HabitCreator> {
       actions: <Widget>[
         ElevatedButton(
           child: Text('Cancel'),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
+          onPressed: () => Navigator.of(context).pop(),
         ),
         ElevatedButton(
           child: Text('Save'),

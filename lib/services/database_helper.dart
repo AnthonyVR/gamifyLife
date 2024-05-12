@@ -297,11 +297,11 @@ class DatabaseHelper {
     //Settings ssettings = await Settings.getSettingsFromDB(db);
 
     // INSERT INITIAL PLAYER
-    await Player.insertPlayer(db, Player(id: 1, level: 1, score: 0, rewardFactor: 1));
+    await Player.insertPlayer(db, Player(id: 1, level: 1, score: 0, rewardFactor: 1, totalCoinsEarned: 0));
 
     // INSERT FIRST VILLAGES
-    await Village.insertVillage(db, Village(id: 1, name: 'Your village', owned: 1, row: 15, column: 15, coins: 0));
-    await Village.insertVillage(db, Village(id: 2, name: 'Enemy village 1', owned: 0, row: 12, column: 18, coins: 0));
+    await Village.insertVillage(db, Village(id: 1, name: 'Your village', owned: 1, row: 15, column: 15, coins: 0, totalCoinsEarned: 0));
+    await Village.insertVillage(db, Village(id: 2, name: 'Enemy village 1', owned: 0, row: 12, column: 18, coins: 0, totalCoinsEarned: 0));
     //await Village.insertVillage(db, Village(id: 3, name: 'Your village 2', owned: 1, row: 14, column: 15, coins: 0));
     //await Village.insertVillage(db, Village(id: 4, name: 'Enemy village 2', owned: 0, row: 14, column: 16, coins: 100));
     //await Village.insertVillage(db, Village(id: 5, name: 'Enemy village 3', owned: 0, row: 16, column: 15, coins: 100));

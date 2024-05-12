@@ -144,7 +144,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
 
   PlayerModel playerModel = PlayerModel();
-  //final String appMode = GlobalVariables.appMode; // test | prod
 
   List<Habit> habits = [];
 
@@ -163,6 +162,12 @@ class _HomePageState extends State<HomePage> {
 
   int eventsOccurred = 0;
 
+  void getPlayer() async {
+    await playerModel.loadPlayer();
+    setState(() {
+
+    });
+  }
   // // Called when the application starts
   // Future<void> calculateEvents() async {
   //   // add game_opened entry
@@ -183,10 +188,16 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
 
+    super.initState();
+
+    getPlayer();
+
+    print("teeeeeeeeest");
+    print(playerModel.player.totalCoinsEarned);
+
     checkAndUpdateDayTable();
 
     printDbPath();
-    super.initState();
 
     //calculateEvents();
 
@@ -211,6 +222,27 @@ class _HomePageState extends State<HomePage> {
   //     },
   //   );
   // }
+
+
+  executeHabit(Map<String, dynamic> habit) async{
+
+    await DatabaseHelper.instance.habitHistoryDao.insertHabitCompletion({
+      DatabaseHelper.columnHabitID: habit['id'],
+      DatabaseHelper.columnDate: date,
+      DatabaseHelper.columnCount: 1,
+    });
+    //await playerModel.addScore(habit['difficulty']);
+    await Village.divideCoins(habit['difficulty']);
+    setState(() {});
+
+  }
+
+  undoHabit(Map<String, dynamic> habit) async{
+    //await playerModel.removeScore(habit['difficulty']);
+    await dbHelper.habitHistoryDao.undo(habit['id'], date);
+    await Village.divideCoins(-habit['difficulty']);
+    setState(() {});
+  }
 
   void updateDate(DateTime newDate) async {
     setState(() {
@@ -337,7 +369,7 @@ class _HomePageState extends State<HomePage> {
           children: <Widget>[
             DrawerHeader(
               decoration: const BoxDecoration(
-                color: Colors.blue,
+                color: Colors.blueGrey,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -345,6 +377,7 @@ class _HomePageState extends State<HomePage> {
                 children: <Widget>[
                   Text('Menu', style: TextStyle(fontSize: 24, color: Colors.white)),
                   Text('Total Score: ${playerModel.player.score}', style: TextStyle(color: Colors.white)),
+                  Text('Total Coins earned: ${playerModel.player.totalCoinsEarned}', style: TextStyle(color: Colors.white)),
                   // More children here
                 ],
               ),
@@ -574,10 +607,7 @@ class _HomePageState extends State<HomePage> {
                                     child: IconButton(
                                       icon: Icon(Icons.undo_outlined, color: isCompleted ? Colors.grey : Colors.white, size: 20),
                                       onPressed: () async {
-                                        await playerModel.removeScore(snapshot.data![index]['difficulty']);
-                                        await dbHelper.habitHistoryDao.undo(snapshot.data![index]['id'], date);
-                                        await Village.divideCoins(-snapshot.data![index]['difficulty']);
-                                        setState(() {});
+                                        completedPercentage != 0 ? await undoHabit(snapshot.data![index]) : print("nothing");
                                       },
                                     ),
                                   ),
@@ -620,14 +650,7 @@ class _HomePageState extends State<HomePage> {
                                 ],
                               ),
                               onTap: isCompleted ? null : () async {
-                                await DatabaseHelper.instance.habitHistoryDao.insertHabitCompletion({
-                                  DatabaseHelper.columnHabitID: snapshot.data![index]['id'],
-                                  DatabaseHelper.columnDate: date,
-                                  DatabaseHelper.columnCount: 1,
-                                });
-                                await playerModel.addScore(snapshot.data![index]['difficulty']);
-                                await Village.divideCoins(snapshot.data![index]['difficulty']);
-                                setState(() {});
+                                await executeHabit(snapshot.data![index]);
                               },
                               onLongPress: () {
                                 Navigator.push(
@@ -917,6 +940,5 @@ class _HomePageState extends State<HomePage> {
       return Colors.red;
     }
   }
-
 
 }

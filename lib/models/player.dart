@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:sqflite/sqflite.dart';
 import '/services/database_helper.dart';
 
 class Player {
@@ -6,14 +7,16 @@ class Player {
   int level;
   int score;
   int rewardFactor;
+  int totalCoinsEarned;
 
-  Player({required this.id, required this.level, required this.score, required this.rewardFactor});
+  Player({required this.id, required this.level, required this.score, required this.rewardFactor, required this.totalCoinsEarned});
 
   Player.fromMap(Map<String, dynamic> map)
       : id = map['id'],
         level = map['level'],
         score = map['score'],
-        rewardFactor = map['rewardFactor'];
+        rewardFactor = map['rewardFactor'],
+        totalCoinsEarned = map['total_coins_earned'];
 
 
   Map<String, dynamic> toMap() {
@@ -22,6 +25,7 @@ class Player {
       'level': level,
       'score': score,
       'rewardFactor': rewardFactor,
+      'total_coins_earned': totalCoinsEarned
     };
   }
 
@@ -32,7 +36,8 @@ class Player {
         id INTEGER PRIMARY KEY,
         level INTEGER NOT NULL,
         score INTEGER NOT NULL,
-        rewardFactor INTEGER NOT NULL
+        rewardFactor INTEGER NOT NULL,
+        total_coins_earned INTEGER NOT NULL
         )
     ''');
   }
@@ -42,12 +47,18 @@ class Player {
     return await db.insert('player', player.toMap());
   }
 
+  static Future<Player> getPlayer() async {
+    final dbHelper = DatabaseHelper.instance;
+
+    return await dbHelper.playerDao.getPlayer();
+  }
+
 }
 
 class PlayerModel extends ChangeNotifier {
   final dbHelper = DatabaseHelper.instance;
 
-  Player _player = Player(id: 1, level: 1, score: 0, rewardFactor: 0);
+  Player _player = Player(id: 1, level: 1, score: 0, rewardFactor: 0, totalCoinsEarned: 0);
 
   Player get player => _player;
 

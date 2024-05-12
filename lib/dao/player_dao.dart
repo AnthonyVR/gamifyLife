@@ -17,6 +17,9 @@ class PlayerDao {
       whereArgs: [1],
     );
 
+    print("printing plaaeyyeyer");
+    print(maps);
+
     if (maps.isNotEmpty) {
       return Player.fromMap(maps.first);
     } else {
@@ -33,6 +36,7 @@ class PlayerDao {
       'level': player.level,
       'score': player.score,
       'rewardFactor': player.rewardFactor,
+      'total_coins_earned': player.totalCoinsEarned
     };
 
     return await db.update(
