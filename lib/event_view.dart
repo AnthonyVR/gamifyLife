@@ -27,7 +27,7 @@ class _EventViewState extends State<EventView> {
   Widget build(BuildContext context) {
     String formatTimestamp(String timestamp) {
       DateTime dateTime = DateTime.parse(timestamp);
-      return DateFormat('d MMMM y, HH:mm:ss').format(dateTime);  // Adjust format as needed
+      return DateFormat('d MMMM y, HH:mm').format(dateTime);  // Adjust format as needed
     }
 
     return Scaffold(

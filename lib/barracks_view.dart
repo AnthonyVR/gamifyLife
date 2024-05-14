@@ -44,6 +44,47 @@ class _BarracksViewState extends State<BarracksView> {
     return units;
   }
 
+  Future<List<Unit>> fetchAllUnits() async {
+    Village? village = await Village.getVillageById(widget.villageId);
+
+    // Fetch the base units from the village
+    List<Unit>? units = await village.getUnits();
+    if (units == null) {
+      return [];  // Return an empty list if there are no base units
+    }
+
+    // Initialize a map to quickly access units by their IDs
+    Map<int, Unit> unitMap = { for (var unit in units) unit.id!: unit };
+
+    // Fetch additional units and their amounts from the village
+    List<Unit>? unitsInVillage = await village.getUnitsInVillage();
+
+    print('UNITMAPPsssssssssssssP');
+    for (var unit in unitsInVillage){
+      print(unit.name);
+      print(unit.amount);
+    }
+
+
+    if (unitsInVillage != null) {
+      for (Unit additionalUnit in unitsInVillage) {
+        if (additionalUnit.id != null && unitMap.containsKey(additionalUnit.id)) {
+          // Add the amounts to the units in the base list
+          unitMap[additionalUnit.id]?.amount += additionalUnit.amount;
+        }
+      }
+    }
+
+    // Return the updated list of units from the map
+    print('UNITMAPPP');
+    for (var unit in unitMap.values){
+      print(unit.name);
+      print(unit.amount);
+    }
+    return unitMap.values.toList();
+  }
+
+
   Future<void> levelUpUnit(int? id) async {
     if (id == null) {
       throw Exception();
@@ -58,7 +99,7 @@ class _BarracksViewState extends State<BarracksView> {
     village.levelUpUnit(id);
   }
 
-  Future<void> addUnit(int? id) async {
+  Future<void> buyUnit(int? id) async {
     if (id == null) {
       throw Exception();
     }
@@ -69,7 +110,7 @@ class _BarracksViewState extends State<BarracksView> {
       throw Exception('Village with ID ${widget.villageId} not found');
     }
 
-    village.addUnit(id);
+    village.buyUnit(id);
   }
 
   Future<Village?> _getVillage() async {
@@ -268,7 +309,7 @@ class _BarracksViewState extends State<BarracksView> {
                                       IconButton(
                                         icon: Icon(Icons.add_circle_outlined, size: 50, color: Colors.green), // Adjust size and color as needed
                                         onPressed: () async {
-                                          await addUnit(unit.id);
+                                          await buyUnit(unit.id);
                                           setState(() {});
                                         },
                                         color: Colors.green, // This will be the color of the button's background
@@ -331,7 +372,7 @@ class _BarracksViewState extends State<BarracksView> {
 
         // Content on top of the image
         FutureBuilder<List<Unit>>(
-          future: fetchUnits(),
+          future: fetchAllUnits(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(child: CircularProgressIndicator());

@@ -69,6 +69,34 @@ class Event {
     return List.generate(maps.length, (i) => Event.fromMap(maps[i]));
   }
 
+
+  static Future<List<Event>> getAllEventsFromYesterday(DateTime currentDate) async {
+    // Convert the current date to the start of the day
+    DateTime startOfToday = DateTime(currentDate.year, currentDate.month, currentDate.day);
+    // Calculate the start of yesterday
+    DateTime startOfYesterday = startOfToday.subtract(Duration(days: 1));
+
+    // Format the dates to match the format in the database (e.g., 'yyyy-MM-dd')
+    String startOfYesterdayStr = "${startOfYesterday.toIso8601String().split('T')[0]}T00:00:00";
+    String endOfYesterdayStr = "${startOfToday.toIso8601String().split('T')[0]}T00:00:00";
+
+    print('startOfYesterdayStr');
+    print(startOfYesterdayStr);
+    print(endOfYesterdayStr);
+    Database db = await DatabaseHelper.instance.database;
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+    SELECT 
+      *
+    FROM events
+    WHERE timestamp >= ? AND timestamp < ?
+    ORDER BY id DESC 
+  ''', [startOfYesterdayStr, endOfYesterdayStr]);
+
+    return List.generate(maps.length, (i) => Event.fromMap(maps[i]));
+  }
+
+
+
   Future<DateTime> getLastGameOpened(Database db) async{
 
     // The query returns the latest 'game_opened' event ordered by timestamp in descending order
@@ -131,6 +159,24 @@ class Event {
     return k;
   }
 
+
+  static void checkTownHallLevelsUps() async{
+
+    // upgrade the town hall if it's the next day
+    List<Event> yesterdayEvents = await getAllEventsFromYesterday(DateTime.now().subtract(Duration(hours: 8)));
+
+    yesterdayEvents = yesterdayEvents.reversed.toList();
+    print(yesterdayEvents);
+
+    for(Event event in yesterdayEvents){
+      print(event.eventType);
+      if(event.eventType == 'townhall_upgrade'){
+        Village.upgradeTownHallById(event.info);
+      }
+    }
+
+  }
+
   // Helper function to calculate factorial
   int _factorial(int num) {
     if (num <= 1) return 1;
@@ -162,6 +208,7 @@ class Event {
       try {
         await DatabaseHelper.instance.backupDatabase(currentTimeStamp);
         print("creating backup for ${currentTimeStamp.day}");
+
       } catch (e) {
         print(e);
       }

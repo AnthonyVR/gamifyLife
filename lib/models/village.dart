@@ -6,6 +6,7 @@ import 'package:habit/models/building.dart';
 import 'package:habit/models/player.dart';
 import 'package:habit/models/tile.dart';
 import 'package:habit/models/unit.dart';
+import 'package:habit/models/event.dart';
 import 'package:sqflite/sqflite.dart';
 import '../services/database_helper.dart';
 import 'dart:math';
@@ -190,12 +191,12 @@ class Village {
 
     // Add units entries with reference to this village to the units table
 
-    int divider = 10; //set this number to easily change speed of the units for testing (e.g. for value 24, the game can be played hourly instead of daily)
-    Unit(villageId: villageId, name: "spearman", image: "assets/spearman.png", level: 1, initialOffence: 10, initialDefence: 10, offence: 10, defence: 10, amount: 0, initialCost: 20, cost: 20, speed: (30/divider).round(), initialLoot: 10, loot: 10).insertToDb();
-    Unit(villageId: villageId, name: "wizard", image: "assets/wizard.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, initialCost: 30, cost: 30, speed: (30/divider).round(), initialLoot: 20, loot: 20).insertToDb();
+    int divider = 1; //set this number to easily change speed of the units for testing (e.g. for value 24, the game can be played hourly instead of daily)
+    Unit(villageId: villageId, name: "spearman", image: "assets/spearman.png", level: 1, initialOffence: 10, initialDefence: 10, offence: 10, defence: 10, amount: 0, initialCost: 20, cost: 20, speed: (25/divider).round(), initialLoot: 10, loot: 10).insertToDb();
+    Unit(villageId: villageId, name: "wizard", image: "assets/wizard.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, initialCost: 30, cost: 30, speed: (25/divider).round(), initialLoot: 20, loot: 20).insertToDb();
     Unit(villageId: villageId, name: "spy", image: "assets/spy.png", level: 1, initialOffence: 0, initialDefence: 5, offence: 0, defence: 5, amount: 0, initialCost: 30, cost: 30, speed: (10/divider).round(), initialLoot: 0, loot: 0).insertToDb();
-    Unit(villageId: villageId, name: "catapult", image: "assets/catapult.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, initialCost: 80, cost: 80, speed: (80/divider).round(), initialLoot: 50, loot: 50).insertToDb();
-    Unit(villageId: villageId, name: "king", image: "assets/king.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, initialCost: 500, cost: 500, speed: (50/divider).round(), initialLoot: 100, loot: 100).insertToDb();
+    Unit(villageId: villageId, name: "catapult", image: "assets/catapult.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, initialCost: 80, cost: 80, speed: (40/divider).round(), initialLoot: 50, loot: 50).insertToDb();
+    Unit(villageId: villageId, name: "king", image: "assets/king.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, initialCost: 500, cost: 500, speed: (60/divider).round(), initialLoot: 100, loot: 100).insertToDb();
 
     // Add units to tiles for defending testing
     // Tile(villageId: villageId, rowNum: 16, columnNum: 4, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
@@ -282,6 +283,15 @@ class Village {
   }
 
   Future<int> addUnit(int id) async {
+
+    // Retrieve the unit by its ID
+    Unit unit = await Unit.getUnitById(id);
+
+    return await unit.addToAmount();
+
+  }
+
+  Future<int> buyUnit(int id) async {
 
     // Retrieve the unit by its ID
     Unit unit = await Unit.getUnitById(id);
@@ -430,6 +440,37 @@ class Village {
     }
   }
 
+  Future<void> upgradeBuildingLevelTomorrow(Database db, String buildingName, int upgradeCost, int level) async {
+
+    // First, retrieve the building
+    Building building = await getBuilding(buildingName);
+
+    print("upgradecost");
+    print(upgradeCost);
+
+    print("coins");
+    print(coins);
+
+    // Check if currentLevel is not null (i.e., a valid level was found).
+    if (building.level != null) {
+
+      if(upgradeCost <= coins){
+
+        coins -= upgradeCost;
+        await updateToDb();
+
+        // Create event to update the level.
+        Event(timestamp: DateTime.now().subtract(Duration(hours: 8)), eventType: 'townhall_upgrade', info: {'building_id': building.id,'village_name': name, 'village_id': id, 'level': level}).insertToDb();
+      }
+
+
+    } else {
+      // Handle error: for example, building not found for the given villageId and buildingName.
+      throw Exception('Building $buildingName not found for villageId $id');
+    }
+  }
+
+
   Future<void> updateBuildingLevel(String buildingName, int level) async {
     final db = await DatabaseHelper.instance.database;
 
@@ -440,10 +481,25 @@ class Village {
     ''', [level, id, buildingName]);
   }
 
+  static void upgradeTownHallById(Map info) async{
+
+    final db = await DatabaseHelper.instance.database;
+    int buildingId = info['building_id'];
+    int upgradeLevel = info['level'];
+
+    print("upgrading town hall to level $upgradeLevel");
+
+    await db.rawUpdate('''
+      UPDATE buildings 
+      SET level = ? 
+      WHERE id = ?
+    ''', [upgradeLevel, buildingId]);
+  }
+
   Future<int?> getCapacity() async {
 
     int? level = await getBuildingLevel('farm');
-    int capacity = (pow(2.5, pow(level!, 0.5))).round();
+    int capacity = 5 + (pow(2.5, pow(level!, 0.5))).round();
 
     return capacity;
 
@@ -560,6 +616,36 @@ class Village {
 
     // Use fromMap to create a list of Unit objects
     return maps.map((map) => Unit.fromMap(map)).toList();
+  }
+
+  Future<List<Unit>> getUnitsInVillage() async {
+    final db = await DatabaseHelper.instance.database;
+
+    // Query the units table for the units associated with the given villageId
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+    SELECT content_id 
+    FROM tiles
+    WHERE village_id = ?
+    AND content_type = "unit"
+  ''', [id]);
+
+    if (maps.isEmpty) {
+      return [];
+      //throw Exception('No units found for village with ID $id');
+    }
+
+    List<Unit> units = [];
+
+    print("printing the items!");
+    for (var item in maps) {
+      int unitId = item['content_id']; // Retrieve the content_id from the item
+      Unit unit = await Unit.getUnitById(unitId);
+      unit.amount = 1;
+      units.add(unit); // Add the unit to the list
+    }
+
+    print(units);
+    return units;
   }
 
   // Units that are sent out for attack (either by player or enemy) are removed from the amount in the units table from the moment the attack starts.
@@ -1140,5 +1226,6 @@ class Village {
     });
 
   }
+
 
 }

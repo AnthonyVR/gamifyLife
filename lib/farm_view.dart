@@ -123,7 +123,7 @@ class _FarmViewState extends State<FarmView> {
   }
 
   int getCapacity(int level) {
-    return pow(2.5, pow(level, 0.5)).round();
+    return 5 + pow(2.5, pow(level, 0.5)).round();
   }
 
   Widget _styledText(String text) {

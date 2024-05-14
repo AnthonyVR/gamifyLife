@@ -290,8 +290,8 @@ class DatabaseHelper {
 
 
     // CREATE INITIAL SETTINGS
-    int divider = 24; //set this number to easily change speed of the game for testing (e.g. for value 24, the game can be played hourly instead of daily)
-    Settings settings = Settings(id: 1, villageSpawnFrequency: ((3*24*60) / divider).round(), buildingLevelUpFrequency: ((1*24*60) / divider).round(), unitCreationFrequency: ((0.5*24*60) / divider).round(), unitTrainingFrequency: ((3*24*60) / divider).round(), attackFrequency: ((3*24*60) / divider).round(), costMultiplier: 1.3);
+    int divider = 1; //set this number to easily change speed of the game for testing (e.g. for value 24, the game can be played hourly instead of daily)
+    Settings settings = Settings(id: 1, villageSpawnFrequency: ((5*24*60) / divider).round(), buildingLevelUpFrequency: ((1*24*60) / divider).round(), unitCreationFrequency: ((1*24*60) / divider).round(), unitTrainingFrequency: ((3*24*60) / divider).round(), attackFrequency: ((3*24*60) / divider).round(), costMultiplier: 1.3);
     settings.insertToDb(db);
 
     //Settings ssettings = await Settings.getSettingsFromDB(db);
@@ -301,7 +301,7 @@ class DatabaseHelper {
 
     // INSERT FIRST VILLAGES
     await Village.insertVillage(db, Village(id: 1, name: 'Your village', owned: 1, row: 15, column: 15, coins: 0, totalCoinsEarned: 0));
-    await Village.insertVillage(db, Village(id: 2, name: 'Enemy village 1', owned: 0, row: 12, column: 18, coins: 0, totalCoinsEarned: 0));
+    await Village.insertVillage(db, Village(id: 2, name: 'Enemy village 1', owned: 0, row: 8, column: 22, coins: 0, totalCoinsEarned: 0));
     //await Village.insertVillage(db, Village(id: 3, name: 'Your village 2', owned: 1, row: 14, column: 15, coins: 0));
     //await Village.insertVillage(db, Village(id: 4, name: 'Enemy village 2', owned: 0, row: 14, column: 16, coins: 100));
     //await Village.insertVillage(db, Village(id: 5, name: 'Enemy village 3', owned: 0, row: 16, column: 15, coins: 100));
@@ -349,7 +349,7 @@ class DatabaseHelper {
     List<Map> tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'");
     for (Map table in tables) {
       // Don't drop the system table
-      if (table['name'] != 'android_metadata' && table['name'] != 'sqlite_sequence' && table['name'] != 'habits' && table['name'] != 'days'  && table['name'] != 'habit_history'  && table['name'] != 'settings') {
+      if (table['name'] != 'android_metadata' && table['name'] != 'sqlite_sequence' && table['name'] != 'habits' && table['name'] != 'days'  && table['name'] != 'habit_history') {
         await db.execute('DROP TABLE ${table['name']}');
       }
     }

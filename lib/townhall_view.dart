@@ -3,8 +3,10 @@ import 'dart:math';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:habit/villageAppBar.dart';
 import 'package:sqflite/sqflite.dart';
+import 'models/building.dart';
 import 'models/settings.dart';
 import 'models/village.dart';
+import 'models/event.dart';
 import 'package:habit/services/database_helper.dart';
 
 
@@ -86,7 +88,12 @@ class _TownhallViewState extends State<TownhallView> {
 
                           // Only allow upgrade if the level is 1 greater than the current townhall level
                           final db = await DatabaseHelper.instance.database;
-                          village?.upgradeBuildingLevel(db, 'town_hall', getCost(index + 1));
+
+                          //Building townHall = await village!.getBuilding("town_hall");
+                          //village!.coins > getCost(index + 1) ? Event(timestamp: DateTime.now(), eventType: 'townhall_upgrade', info: {'building_id': townHall.id}).insertToDb(): null;
+
+                          //townhall gets only updated the next day, to prevent cheating
+                          village?.upgradeBuildingLevelTomorrow(db, 'town_hall', getCost(index + 1), index + 1);
                           currentTownHallLevel = index + 1; // Placeholder logic, you can replace with db update logic.
 
                           setState(() {

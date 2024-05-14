@@ -114,6 +114,7 @@ void checkAndUpdateDayTable() async {
   if (row.isEmpty) {
     print("inserting new row");
     await dbHelper.dayDao.insertDay({'date': formattedDate, 'weekday': weekday});
+    Event.checkTownHallLevelsUps();
   }
 }
 
@@ -431,14 +432,14 @@ class _HomePageState extends State<HomePage> {
                 await (DatabaseHelper.instance.backupDatabase(currentTime));
               },
             ),
-            GlobalVariables.appMode == 'test' || true ? ListTile(
+            GlobalVariables.appMode == 'test' ? ListTile(
               title: Text('Remove AND Rebuild ALL initial database contents'),
               onTap: () {
                 dbHelper.clearAndRebuildDatabase();
                 setState(() {});
               },
             ) : SizedBox(),
-            GlobalVariables.appMode == 'test' || true ? ListTile(
+            GlobalVariables.appMode == 'test' ? ListTile(
               title: Text('Remove AND Rebuild everything except habits and settings'),
               onTap: () {
                 dbHelper.clearAndRebuildDatabaseExceptHabits();
@@ -533,6 +534,7 @@ class _HomePageState extends State<HomePage> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
+          calculateEvents();
           setState(() {
           });
         },

@@ -5,6 +5,7 @@ import 'package:habit/townhall_view.dart';
 import 'package:habit/villageAppBar.dart';
 import '../models/tile.dart';
 import '../services/database_helper.dart';
+import 'models/unit.dart';
 import 'models/village.dart';
 
 class VillageView extends StatefulWidget {
@@ -269,8 +270,17 @@ class _VillageViewState extends State<VillageView> {
 
     int? villageCapacity = await _village?.getCapacity();
     int? villagePopulation = await _village?.getPopulation();
+    int unitAmount = 0;
 
-    if(villagePopulation! < villageCapacity!){
+    List<Unit> units = await _village!.getAvailableUnits();
+    for (Unit unit in units){
+      if(unit.id == id){
+        print("it's a ${unit.name} with amount ${unit.amount}");
+        unitAmount = unit.amount;
+      }
+    }
+
+    if(villagePopulation! < villageCapacity! && unitAmount > 0){
       _village?.placeTileInVillage(id!, row, column, "unit");
     }
   }
