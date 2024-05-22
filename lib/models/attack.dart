@@ -196,14 +196,11 @@ class Attack {
   // runs when an attack is already sent out -> checks whether attack has already arrived and handles it
   static Future<void> handlePendingAttacks() async{
 
-    print("running function handlePendingAttacks()");
-
     List<Attack> attacks = await getIncompleteAttacks();
 
     final db = await DatabaseHelper.instance.database;
 
 
-    print("looping through all attacks");
     // loop through all attacks
     for(Attack attack in attacks){
 
@@ -852,14 +849,11 @@ class Attack {
 
     final db = await DatabaseHelper.instance.database;
 
-    print("first raw db query");
     final List<Map<String, dynamic>> attackMaps = await db.query(
         'attacks',
         where: 'completed != ?',
         whereArgs: [2]
     );
-
-    print("first raw db query completed");
 
 
     // Convert the List<Map<String, dynamic> into a List<Attack>

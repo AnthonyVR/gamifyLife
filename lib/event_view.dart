@@ -48,10 +48,17 @@ class _EventViewState extends State<EventView> {
                 itemCount: eventList.length,
                 itemBuilder: (context, index) {
                   final event = eventList[index];
+
+                  // Check if the event type is "unit_trained"
+                  // if (event.eventType == "unit_trained" || event.eventType == 'unit_added' || event.eventType == 'building_level_up') {
+                  //   return Text("?", textAlign: TextAlign.center,); // Return an empty widget if the condition is met
+                  // }
+
+                  // If the event type is not "unit_trained", display the content
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 4.0),
                     child: ListTile(
-                      onLongPress: () => showInfoDialog(context, event.info), // Call the function on long press
+                      onLongPress: () =>  (event.eventType == "unit_trained" || event.eventType == 'unit_added' || event.eventType == 'building_level_up') ? "" : showInfoDialog(context, event.info), // Call the function on long press
                       tileColor: _getColorForEventType(event.eventType),
                       title: Text(formatTimestamp(event.timestamp.toIso8601String())),
                       subtitle: Column(
@@ -59,9 +66,8 @@ class _EventViewState extends State<EventView> {
                         children: [
                           Row(
                             children: [
-                              //Text(event.info.toString()),
                               Spacer(), // This will take up all available space between the text widgets
-                              Text(event.eventType),
+                              (event.eventType == "unit_trained" || event.eventType == 'unit_added' || event.eventType == 'building_level_up') ? Text("?") : Text(event.eventType),
                             ],
                           )
                         ],
@@ -130,12 +136,12 @@ class _EventViewState extends State<EventView> {
         return Colors.blue;
       case 'attack': // replace with your actual event type
         return Colors.red; // replace with the desired color
-      case 'unit_trained': // replace with your actual event type
-        return Colors.yellow; // replace with the desired color
-      case 'unit_added': // replace with your actual event type
-        return Colors.orange; // replace with the desired color
-      case 'building_level_up': // replace with your actual event type
-        return Colors.grey; // replace with the desired color
+      // case 'unit_trained': // replace with your actual event type
+      //   return Colors.yellow; // replace with the desired color
+      // case 'unit_added': // replace with your actual event type
+      //   return Colors.orange; // replace with the desired color
+      // case 'building_level_up': // replace with your actual event type
+      //   return Colors.grey; // replace with the desired color
 
     // add as many cases as you need
       default:

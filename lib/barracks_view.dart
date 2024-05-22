@@ -261,7 +261,7 @@ class _BarracksViewState extends State<BarracksView> {
                                     children: [
                                       Text(
                                         '${unit.amount}',
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           fontSize: 40, // Make the amount stand out
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -432,8 +432,9 @@ class _BarracksViewState extends State<BarracksView> {
                                   children: [
                                     Text('Atk: ${unit.offence} (+${(unit.initialOffence * pow(costMultiplier!, unit.level )).round() - (unit.initialOffence * pow(costMultiplier!, unit.level -1)).round()})'),
                                     Text('Def: ${unit.defence} (+${(unit.initialDefence * pow(costMultiplier!, unit.level )).round() - (unit.initialDefence * pow(costMultiplier!, unit.level -1)).round()})'),
-                                    SizedBox(height: 10),
-                                    Text('Loot: ${unit.loot} (+${(unit.initialLoot * pow(costMultiplier!, unit.level )).round() - (unit.initialLoot * pow(costMultiplier!, unit.level -1)).round()})'),
+                                    //Text('Loot: ${unit.loot} (+${(unit.initialLoot * pow(costMultiplier!, unit.level )).round() - (unit.initialLoot * pow(costMultiplier!, unit.level -1)).round()})'),
+                                    SizedBox(height: 20),
+                                    Text('Cost: ${(unit.cost)} (+${(unit.initialCost * pow(costMultiplier!, unit.level )).round() - (unit.initialCost * pow(costMultiplier!, unit.level -1)).round()})'),
                                     SizedBox(height: 8.0),
                                   ],
                                 ),

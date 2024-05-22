@@ -357,8 +357,9 @@ class Event {
 
     }
 
-    await Event(timestamp: currentTimeStamp, eventType: 'game_opened', info: allInfo).insertToDb();
-
+    if(timeSinceGameOpened > 10) { // only insert gameOpened event if game hasn't been opened in 3 minutes to prevent event spamming
+      await Event(timestamp: currentTimeStamp, eventType: 'game_opened', info: allInfo).insertToDb();
+    }
     return eventsOccurred;
 
   }

@@ -52,7 +52,6 @@ View -> Tool Windows -> App Inspection -> Database inspector!!!
 
 Future<void> calculateEvents() async {
 
-  print("RUNNING CALCULATEEVENTS updated");
   try {
 
     // Add game_opened entry

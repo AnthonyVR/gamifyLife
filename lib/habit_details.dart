@@ -14,8 +14,6 @@ class HabitData {
   HabitData(this.date, this.amount);
 }
 
-
-
 class HabitDetails extends StatefulWidget {
   final int id;
 
@@ -28,7 +26,7 @@ class HabitDetails extends StatefulWidget {
 class HabitDetailsState extends State<HabitDetails> {
   final dbHelper = DatabaseHelper.instance;
 
-  late List history;
+  late List<Map<String, dynamic>> history;
 
   Habit? habit;
 
@@ -38,9 +36,9 @@ class HabitDetailsState extends State<HabitDetails> {
     getHabit();
   }
 
-   getHabit() async {
+  getHabit() async {
     habit = await dbHelper.habitDao.getHabitById(widget.id);
-    setState(() {});  // Trigger a rebuild
+    setState(() {}); // Trigger a rebuild
   }
 
   BarChartData generateChartData(List<Map<String, dynamic>> history) {
@@ -60,15 +58,15 @@ class HabitDetailsState extends State<HabitDetails> {
 
       // Create and return a BarChartGroupData object.
       return BarChartGroupData(
-        x: index,  // Set index as x value.
+        x: index, // Set index as x value.
         barRods: [
           BarChartRodData(
-            y: amount,  // Set amount as y value.
+            y: amount, // Set amount as y value.
             width: barWidth,
             colors: [Colors.blue],
           ),
         ],
-        showingTooltipIndicators: [0],
+        showingTooltipIndicators: [], // Set to an empty list to remove the indicators.
       );
     }).toList();
 
@@ -86,23 +84,31 @@ class HabitDetailsState extends State<HabitDetails> {
           },
           getTextStyles: (context, value) => const TextStyle(color: Colors.black, fontSize: 10),
         ),
-        // ... other properties ...
+        topTitles: SideTitles(
+          showTitles: false, // Disable top titles to remove the indices at the top.
+        ),
+        leftTitles: SideTitles(
+          showTitles: true,
+          getTextStyles: (context, value) => const TextStyle(color: Colors.black, fontSize: 10),
+        ),
+        rightTitles: SideTitles(
+          showTitles: false,
+        ),
       ),
-      // ... other properties ...
+      gridData: FlGridData(show: true),
+      borderData: FlBorderData(show: true),
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
         title: Text(habit?.title ?? 'Invalid habit'),
       ),
       body: Column(
         children: [
+          SizedBox(height: 10),
           SizedBox(
             height: 200,
             child: FutureBuilder<List<Map<String, dynamic>>>(
@@ -110,93 +116,91 @@ class HabitDetailsState extends State<HabitDetails> {
               builder: (BuildContext context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
                 if (snapshot.hasData) {
                   history = snapshot.data!;
-                  //print('Type of history: ${history.runtimeType}');
                   return BarChart(generateChartData(history.cast<Map<String, dynamic>>()));
-
                 } else if (snapshot.hasError) {
                   return Text("An error occurred: ${snapshot.error}");
                 }
                 // While fetching, show a loading spinner.
                 return const CircularProgressIndicator();
-              },            )
+              },
+            ),
           ),
           Expanded(
-              child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: dbHelper.habitHistoryDao.getHabitHistory(widget.id),
-                builder: (BuildContext context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
-                  if (snapshot.hasData) {
-                    history = snapshot.data!;
-                    print(history);
-                    print(history.runtimeType);
-                    return LayoutBuilder(
-                      builder: (context, constraints) {
-                        return SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                            child: DataTable(
-                              columnSpacing: 0,
-                              columns: <DataColumn>[
-                                DataColumn(
-                                  label: SizedBox(
-                                    width: constraints.maxWidth / 3, // allocate half of space to date column
-                                    child: Text('Date'),
-                                  ),
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: dbHelper.habitHistoryDao.getHabitHistory(widget.id),
+              builder: (BuildContext context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
+                if (snapshot.hasData) {
+                  history = snapshot.data!;
+                  print(history);
+                  print(history.runtimeType);
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                          child: DataTable(
+                            columnSpacing: 0,
+                            columns: <DataColumn>[
+                              DataColumn(
+                                label: SizedBox(
+                                  width: constraints.maxWidth / 3, // allocate half of space to date column
+                                  child: Text('Date'),
                                 ),
-                                DataColumn(
-                                  label: SizedBox(
-                                    width: constraints.maxWidth / 3, // allocate half of space to amount column
-                                    child: Text('Times performed'),
-                                  ),
+                              ),
+                              DataColumn(
+                                label: SizedBox(
+                                  width: constraints.maxWidth / 3, // allocate half of space to amount column
+                                  child: Text('Times performed'),
                                 ),
-                                DataColumn(
-                                  label: SizedBox(
-                                    width: constraints.maxWidth / 3, // allocate half of space to amount column
-                                    child: Text('Earned', textAlign: TextAlign.center,),
-                                  ),
+                              ),
+                              DataColumn(
+                                label: SizedBox(
+                                  width: constraints.maxWidth / 3, // allocate half of space to amount column
+                                  child: Text('Earned', textAlign: TextAlign.center),
                                 ),
-                              ],
-                              rows: List<DataRow>.generate(
-                                history.length,
-                                    (int index) => DataRow(
-                                  cells: <DataCell>[
-                                    DataCell(SizedBox(width: constraints.maxWidth / 3, child: Text('${history[index]['date']}'))),
-                                    DataCell(SizedBox(width: constraints.maxWidth / 3, child: Text('${history[index]['amount']}', textAlign: TextAlign.center))),
-                                    DataCell(
-                                      SizedBox(
-                                        width: constraints.maxWidth / 3,
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            SvgPicture.asset(
-                                              'assets/coins.svg',
-                                              height: 20,
-                                              width: 20,
-                                            ),
-                                            Text(' ${history[index]['amount'] * habit?.difficulty}'),
-                                          ],
-                                        ),
+                              ),
+                            ],
+                            rows: List<DataRow>.generate(
+                              history.length,
+                                  (int index) => DataRow(
+                                cells: <DataCell>[
+                                  DataCell(SizedBox(width: constraints.maxWidth / 3, child: Text('${history[index]['date']}'))),
+                                  DataCell(SizedBox(width: constraints.maxWidth / 3, child: Text('${history[index]['amount']}', textAlign: TextAlign.center))),
+                                  DataCell(
+                                    SizedBox(
+                                      width: constraints.maxWidth / 3,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          SvgPicture.asset(
+                                            'assets/coins.svg',
+                                            height: 20,
+                                            width: 20,
+                                          ),
+                                          Text(' ${history[index]['amount'] * (habit?.difficulty ?? 1)}'),
+                                        ],
                                       ),
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                        );
-                      },
-                    );
-                  } else if (snapshot.hasError) {
-                    return Text("An error occurred: ${snapshot.error}");
-                  }
-                  // While fetching, show a loading spinner.
-                  return const CircularProgressIndicator();
-                },
-              ),)
+                        ),
+                      );
+                    },
+                  );
+                } else if (snapshot.hasError) {
+                  return Text("An error occurred: ${snapshot.error}");
+                }
+                // While fetching, show a loading spinner.
+                return const CircularProgressIndicator();
+              },
+            ),
+          ),
         ],
-      )
-
-
+      ),
     );
   }
 }

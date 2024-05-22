@@ -1,6 +1,7 @@
 import 'dart:ffi';
 
 import 'package:habit/models/attack.dart';
+import 'package:habit/models/habit.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
