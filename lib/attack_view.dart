@@ -5,9 +5,11 @@ import 'package:flutter_svg/svg.dart';
 import 'package:habit/services/database_helper.dart';
 import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
+import 'map_view.dart';
 import 'models/attack.dart';
 import 'models/unit.dart';
 import 'main.dart';
+import 'models/village.dart';
 
 class AttackView extends StatefulWidget {
   @override
@@ -134,47 +136,64 @@ class _AttackViewState extends State<AttackView> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8.0),
             ),
-              child: ListTile(
-                tileColor: attack.opened == 1
-                    ? attack.arrivedAt.isAfter(DateTime.now())
-                    ? Colors.white.withOpacity(0.5) // Faded white
-                    : (attack.outcome == 0 ? Colors.pink[100]!.withOpacity(0.4) : Colors.lightGreen[100]!.withOpacity(0.4))
-                    : attack.arrivedAt.isAfter(DateTime.now())
-                    ? Colors.white
-                    : (attack.outcome == 0 ? Colors.red[500] : Colors.green[500]),
-                title: attack.arrivedAt.isAfter(DateTime.now())
-                    ? (attack.returnedAt == null
-                    ? Text(" Arrival: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.arrivedAt)}")
-                    : Text(" Arrival: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.arrivedAt)} \n(Return: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.returnedAt!)} )"))
-                    : (attack.returnedAt == null
-                    ? Text(" Return: Not available")
-                    : Text(" Return: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.returnedAt!)}")),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(" From: ${attack.sourceVillageName}"),
-                    Text(" To: ${attack.destinationVillageName}")
-                  ],
-                ),
-                trailing: Image.asset(
-                  attack.owned == 1 ? 'assets/attack.png' : 'assets/defense.png',
-                  width: 24.0,
-                  height: 24.0,
-                ),
-                onTap: () {
-                  if (attack.completed > 0) {
-                    showDialog(
-                      context: context,
-                      builder: (context) => _attackDetailsDialog(attack),
-                    );
-                  } else if(attack.owned == 1) {
-                    showDialog(
-                      context: context,
-                      builder: (context) => _showOutgoingAttackDetails(attack),
-                    );
-                  }
-                },
+            child: ListTile(
+              tileColor: attack.opened == 1
+                  ? attack.arrivedAt.isAfter(DateTime.now())
+                  ? Colors.white.withOpacity(0.5) // Faded white
+                  : (attack.outcome == 0 ? Colors.pink[100]!.withOpacity(0.4) : Colors.lightGreen[100]!.withOpacity(0.4))
+                  : attack.arrivedAt.isAfter(DateTime.now())
+                  ? Colors.white
+                  : (attack.outcome == 0 ? Colors.red[500] : Colors.green[500]),
+              title: attack.arrivedAt.isAfter(DateTime.now())
+                  ? (attack.returnedAt == null
+                  ? Text(" Arrival: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.arrivedAt)}")
+                  : Text(" Arrival: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.arrivedAt)} \n(Return: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.returnedAt!)} )"))
+                  : (attack.returnedAt == null
+                  ? Text(" Return: Not available")
+                  : Text(" Return: ${DateFormat('d MMMM y, HH:mm:ss').format(attack.returnedAt!)}")),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(" From: ${attack.sourceVillageName}"),
+                  Text(" To: ${attack.destinationVillageName}")
+                ],
               ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (attack.completed != 0 && attack.damage != "none")
+                    Image.asset(
+                      'assets/catapult.png',
+                      width: 24.0,
+                      height: 24.0,
+                    ),
+                  if (attack.completed != 0 && attack.damage != "none")
+                    Text("${attack.damage}"),
+                  SizedBox(width: 10),
+                  Image.asset(
+                    attack.owned == 1 ? 'assets/attack.png' : 'assets/defense.png',
+                    width: 24.0,
+                    height: 24.0,
+                  ),
+                ],
+              ),
+              onTap: () {
+                if (attack.completed > 0) {
+                  showDialog(
+                    context: context,
+                    builder: (context) => _attackDetailsDialog(attack),
+                  );
+                } else if (attack.owned == 1) {
+                  showDialog(
+                    context: context,
+                    builder: (context) => _showOutgoingAttackDetails(attack),
+                  );
+                }
+              },
+              onLongPress: () {
+                attack.owned == 1 ? _showUnitsPopup(attack.destinationVillageId, attack.destinationVillageName!) : _showUnitsPopup(attack.sourceVillageId, attack.sourceVillageName!);
+              },
+            ),
           ),
         );
       },
@@ -185,6 +204,22 @@ class _AttackViewState extends State<AttackView> {
 
     Map espionageResults = json.decode(espionage);
     return espionageResults;
+  }
+
+  Future<void> _showUnitsPopup(int destinationVillageId, String destinationVillageName) async {
+    Village village = await Village.getVillageById(1);
+    List<Unit>? units = await village.getUnits();
+    if (units != null) {
+      showDialog(
+        context: context,
+        builder: (context) => UnitsPopup(
+          units: units,
+          selectedVillageId: 1,
+          destinationVillageId: destinationVillageId,
+          destinationVillageName: destinationVillageName
+        ),
+      );
+    }
   }
 
 
@@ -225,8 +260,25 @@ class _AttackViewState extends State<AttackView> {
                 SizedBox(height: 10),
                 Center(child: Text("Returned: ${formatTimestamp(attack.returnedAt!.toIso8601String())}")),
                 SizedBox(height: 50),
-                Center(child: Text("Attacker: ${attack.sourceVillageName ?? 'Unknown'}")),
-
+                Center(
+                  child: attack.owned == 1
+                      ? Text(
+                    "Attacker: ${attack.sourceVillageName ?? 'Unknown'}",
+                    style: TextStyle(
+                      color: Colors.black,
+                    ),
+                  )
+                      : GestureDetector(
+                    onTap: () => _showUnitsPopup(attack.sourceVillageId, attack.sourceVillageName!),
+                    child: Text(
+                      "Attacker: ${attack.sourceVillageName ?? 'Unknown'}",
+                      style: TextStyle(
+                        color: Colors.blue,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ),
                 FutureBuilder<Widget>(
                   future: generateUnitsTable(attack.sourceUnitsBefore, attack.sourceUnitsAfter!, 1, attack.owned),
                   builder: (context, snapshot) {
@@ -240,7 +292,25 @@ class _AttackViewState extends State<AttackView> {
                   },
                 ),
                 SizedBox(height: 30),
-                Center(child: Text("Defender: ${attack.destinationVillageName ?? 'Unknown'}")),
+                Center(
+                  child: attack.owned == 0
+                      ? Text(
+                    "Defender: ${attack.destinationVillageName ?? 'Unknown'}",
+                    style: TextStyle(
+                      color: Colors.black,
+                    ),
+                  )
+                      : GestureDetector(
+                    onTap: () => _showUnitsPopup(attack.destinationVillageId, attack.destinationVillageName!),
+                    child: Text(
+                      "Defender: ${attack.destinationVillageName ?? 'Unknown'}",
+                      style: TextStyle(
+                        color: Colors.blue,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ),
                 FutureBuilder<Widget>(
                   future: generateUnitsTable(attack.destinationUnitsBefore!, attack.destinationUnitsAfter!, attack.outcome!, attack.owned),
                   builder: (context, snapshot) {
@@ -377,7 +447,7 @@ class _AttackViewState extends State<AttackView> {
     List<Map<String, dynamic>> unitsAfter = await decodeUnits(unitsAfterStr);
 
     if (unitsBefore.isEmpty) {
-      return Center(child: Text('\n- No defending units - ', style: TextStyle(fontStyle: FontStyle.italic),));
+      return const Center(child: Text('\n- No defending units - ', style: TextStyle(fontStyle: FontStyle.italic),));
     }
     // Create columns from the first list, assuming it will always have all units.
     List<DataColumn> columns = unitsBefore.map((unitMap) {

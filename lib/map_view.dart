@@ -302,6 +302,7 @@ class _MapViewState extends State<MapView> {
                           units: snapshot.data!,
                           selectedVillageId: selectedVillageId,
                           destinationVillageId: tileData['id'],
+                          destinationVillageName: tileData['name'],
                         );
                       }
                     },
@@ -327,11 +328,13 @@ class UnitsPopup extends StatefulWidget {
   final List<Unit> units;
   final int selectedVillageId;
   final int destinationVillageId;
+  final String destinationVillageName;
 
   UnitsPopup({
     required this.units,
     required this.selectedVillageId,
     required this.destinationVillageId,
+    required this.destinationVillageName,
   });
 
   @override
@@ -340,17 +343,42 @@ class UnitsPopup extends StatefulWidget {
 
 class _UnitsPopupState extends State<UnitsPopup> {
   late Map<Unit, int> selectedUnitsMap;
+  int? selectedVillageId;
+  List<Village>? villages;
+  List<Unit> units = [];
 
   @override
   void initState() {
     super.initState();
-    selectedUnitsMap = {for (var unit in widget.units) unit: unit.amount};
+    selectedVillageId = widget.selectedVillageId;
+    units = widget.units;
+    selectedUnitsMap = {for (var unit in units) unit: unit.amount};
+    fetchVillages();
+  }
+
+  void fetchVillages() async {
+    List<Village>? fetchedVillages = await Village.getPlayerVillages();
+    setState(() {
+      villages = fetchedVillages;
+    });
+  }
+
+  void fetchUnitsForSelectedVillage(int villageId) async {
+    Village? village = await Village.getVillageById(villageId);
+    List<Unit>? newUnits = await village?.getUnits();
+    if (newUnits != null) {
+      setState(() {
+        units = newUnits;
+        selectedUnitsMap = {for (var unit in newUnits) unit: unit.amount};
+        selectedVillageId = villageId;
+      });
+    }
   }
 
   void _onAttackPressed() {
     List<Map<String, dynamic>> selectedUnits = selectedUnitsMap.entries
         .map((entry) => {
-      'unit': {'name': entry.key.name, 'speed': entry.key.speed}, // Structure modified here
+      'unit': {'name': entry.key.name, 'speed': entry.key.speed},
       'amount': entry.value,
     })
         .where((detail) => detail['amount'] as int > 0)
@@ -369,8 +397,7 @@ class _UnitsPopupState extends State<UnitsPopup> {
                 .where((detail) => detail['amount'] as int > 0)
                 .toList();
 
-            // Call the attack function with the list of selected units and their amounts
-            Attack.createAttack(DateTime.now(), widget.selectedVillageId, widget.destinationVillageId, attackDetails);
+            Attack.createAttack(DateTime.now(), selectedVillageId!, widget.destinationVillageId, attackDetails);
 
             print('Attack confirmed with details: $attackDetails');
           },
@@ -378,7 +405,7 @@ class _UnitsPopupState extends State<UnitsPopup> {
             print('Attack canceled');
           },
           units: selectedUnits,
-          selectedVillageId: widget.selectedVillageId,
+          selectedVillageId: selectedVillageId!,
           destinationVillageId: widget.destinationVillageId,
         );
       },
@@ -391,7 +418,22 @@ class _UnitsPopupState extends State<UnitsPopup> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ...widget.units.map((unit) {
+          if (villages != null)
+            DropdownButton<int>(
+              value: selectedVillageId,
+              onChanged: (int? newValue) {
+                if (newValue != null) {
+                  fetchUnitsForSelectedVillage(newValue);
+                }
+              },
+              items: villages!.map<DropdownMenuItem<int>>((Village village) {
+                return DropdownMenuItem<int>(
+                  value: village.id,
+                  child: Text(village.name),
+                );
+              }).toList(),
+            ),
+          ...units.map((unit) {
             return ListTile(
               title: Text(unit.name),
               subtitle: Row(
@@ -418,6 +460,7 @@ class _UnitsPopupState extends State<UnitsPopup> {
               },
             );
           }).toList(),
+          Text("To: ${widget.destinationVillageName}"),
           ElevatedButton(
             onPressed: _onAttackPressed,
             style: ElevatedButton.styleFrom(
@@ -430,6 +473,7 @@ class _UnitsPopupState extends State<UnitsPopup> {
     );
   }
 }
+
 
 class ConfirmationPopup extends StatefulWidget {
   final VoidCallback onConfirm;
