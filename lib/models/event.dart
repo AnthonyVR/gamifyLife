@@ -263,13 +263,32 @@ class Event {
 
 
       int numberOfUnitCreations =  calculateNumberOfEvents(timeSinceGameOpened, unitCreationFrequency);
+      print("time since game opened $timeSinceGameOpened");
+      print("inital number of unit creations $numberOfUnitCreations");
       int? townhallLevel = await village.getBuildingLevel('town_hall');
-      numberOfUnitCreations = numberOfUnitCreations * townhallLevel!;
+      int? numberOfVillages = await Village.getNumberOfVillages();
+
+      print("number of villages $numberOfVillages");
+      Settings? settings;
+      settings = await Settings.getSettingsFromDB(db);
+      double costMultiplier = settings.costMultiplier;
+
+      int spanwMultiplier = (1 * pow(costMultiplier, numberOfVillages - 1)).round().toInt();
+      print(spanwMultiplier);
+
+      print("spawn multiplier");
+
+      print(spanwMultiplier); // Output will be an integer
+
+      numberOfUnitCreations = numberOfUnitCreations * townhallLevel! * spanwMultiplier;
+
+      print("townhall level ${village.name}: $townhallLevel");
 
       allInfo['unit_creation_randomValue'] = info['randomValue'];
       allInfo['unit_creation_cumulativeProbability'] = info['cumulativeProbability'];
       allInfo['unit_creation_numberOfEvents'] = info['numberOfEvents'];
 
+      print("number of unit creations $numberOfUnitCreations");
       //numberOfUnitCreations = 0;
       for (int i = 0; i < numberOfUnitCreations; i++) {
         Map unitAdded = await village.addEnemyUnit();
@@ -279,7 +298,7 @@ class Event {
 
         info['unitAdded'] = unitAdded;
         info['townHallLevel'] = townhallLevel;
-
+        info['spawnMultiplier'] = spanwMultiplier;
 
         await Event(timestamp: randomTimestamp, eventType: 'unit_added', info: info).insertToDb();
         eventsOccurred++;

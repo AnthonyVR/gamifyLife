@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:habit/village_view.dart';
 
 import 'models/village.dart';
 
@@ -48,7 +49,31 @@ class VillageAppBar extends StatelessWidget implements PreferredSizeWidget {
                     Text("${villageSnapshot.data?.coins}", style: TextStyle(fontSize: 28),),
                   ],
                 ),
+                IconButton(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => VillageView(villageId: 1),
+                        fullscreenDialog: true, // make the page full screen
+                      ),
+                    );
+                  },
+                  icon: Icon(Icons.arrow_left),
+                ),
                 Text(displayTitle),
+                IconButton(
+                  onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => VillageView(villageId: 2),
+                          fullscreenDialog: true, // make the page full screen
+                        ),
+                      );
+                      },
+                  icon: Icon(Icons.arrow_right),
+                ),
                 FutureBuilder<int?>(
                   future: villageSnapshot.data!.getPopulation(),
                   builder: (context, populationSnapshot) {

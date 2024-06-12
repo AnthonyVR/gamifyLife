@@ -173,7 +173,7 @@ class Attack {
 
     int slowestSpeed = calculateSlowestSpeed(sourceUnits);
     double distanceBetweenVillages = calculateDistanceBetweenVillages(sourceVillage, destinationVillage);
-    DateTime arrivalTime = _calculateArrivalTime(attackTime, distanceBetweenVillages, slowestSpeed);
+    DateTime arrivalTime = calculateArrivalTime(attackTime, distanceBetweenVillages, slowestSpeed);
 
     Attack attack = Attack(
       sourceVillageId: sourceVillageId,
@@ -233,7 +233,7 @@ class Attack {
 
             await db.rawUpdate('''
               UPDATE units
-              SET amount = amount + ?
+              SET amount = amount + ?, in_transit = 0
               WHERE id = ?
               ''', [amountToAdd, unitId]);
           }
@@ -394,7 +394,7 @@ class Attack {
 
     int slowestReturnSpeed = calculateSlowestSpeed(sourceUnitsAfterList);
     double distanceBetweenVillages = calculateDistanceBetweenVillages(sourceVillage, destinationVillage);
-    returnedAt = _calculateArrivalTime(arrivedAt, distanceBetweenVillages, slowestReturnSpeed);
+    returnedAt = calculateArrivalTime(arrivedAt, distanceBetweenVillages, slowestReturnSpeed);
 
     completed = 1;
     loot = 0;
@@ -602,6 +602,9 @@ class Attack {
     if(sourceUnitsAfterList.last['unit'].name == 'king' && sourceUnitsAfterList.last['unit'].level >= numberOfOwnedVillages && sourceUnitsAfterList.last['amount'] > 0 && destinationvillageTownhallLevel == 0){
 
       print("Village will be conquered");
+      final db = await DatabaseHelper.instance.database;
+      destinationVillage.upgradeBuildingLevel(db, 'town_hall', 0);
+      destinationVillage.changeName("Your village $numberOfOwnedVillages");
       destinationVillage.changeOwner(1);
     }
 
@@ -746,7 +749,7 @@ class Attack {
 
     int slowestReturnSpeed = calculateSlowestSpeed(sourceUnitsAfterList);
     double distanceBetweenVillages = calculateDistanceBetweenVillages(sourceVillage, destinationVillage);
-    returnedAt = _calculateArrivalTime(arrivedAt, distanceBetweenVillages, slowestReturnSpeed);
+    returnedAt = calculateArrivalTime(arrivedAt, distanceBetweenVillages, slowestReturnSpeed);
 
     completed = 1;
     damage = "none";
@@ -891,7 +894,7 @@ class Attack {
     return sqrt(pow(destination.row - source.row, 2) + pow(destination.column - source.column, 2));
   }
 
-  static DateTime _calculateArrivalTime(DateTime currentTime, double distance, int slowestSpeed) {
+  static DateTime calculateArrivalTime(DateTime currentTime, double distance, int slowestSpeed) {
     final attackDuration = (distance * slowestSpeed).round();
     return currentTime.add(Duration(minutes: attackDuration)); //CHANGE BACK TO MINUTES
   }

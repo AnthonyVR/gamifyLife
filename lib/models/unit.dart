@@ -22,6 +22,7 @@ class Unit {
   final int speed;
   int loot;
   int amount;
+  int inTransit;
 
   var row;
 
@@ -40,7 +41,8 @@ class Unit {
     required this.defence,
     required this.speed,
     required this.loot,
-    required this.amount
+    required this.amount,
+    required this.inTransit
   });
 
 
@@ -62,6 +64,7 @@ class Unit {
       'speed': speed,
       'loot': loot,
       'amount': amount,
+      'in_transit': inTransit,
     };
   }
 
@@ -87,6 +90,7 @@ class Unit {
       speed: map['speed'],
       loot: map['loot'],
       amount: map['amount'],
+      inTransit: map['in_transit'],
     );
   }
 
@@ -109,6 +113,7 @@ class Unit {
           speed INTEGER NOT NULL,
           loot INTEGER NOT NULL,
           amount INTEGER NOT NULL,
+          in_transit INTEGER NOT NULL,
           FOREIGN KEY (village_id) REFERENCES villages(id)
       )
     ''');
@@ -198,6 +203,7 @@ class Unit {
 
     // Increase its amount by 1
     amount -= amountToRemove;
+    inTransit += amountToRemove;
 
     // Update the unit in the database
     return await db.update(

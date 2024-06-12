@@ -192,11 +192,11 @@ class Village {
     // Add units entries with reference to this village to the units table
 
     int divider = 1; //set this number to easily change speed of the units for testing (e.g. for value 24, the game can be played hourly instead of daily)
-    Unit(villageId: villageId, name: "spearman", image: "assets/spearman.png", level: 1, initialOffence: 10, initialDefence: 10, offence: 10, defence: 10, amount: 0, initialCost: 20, cost: 20, speed: (25/divider).round(), initialLoot: 10, loot: 10).insertToDb();
-    Unit(villageId: villageId, name: "wizard", image: "assets/wizard.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, initialCost: 30, cost: 30, speed: (25/divider).round(), initialLoot: 20, loot: 20).insertToDb();
-    Unit(villageId: villageId, name: "spy", image: "assets/spy.png", level: 1, initialOffence: 0, initialDefence: 5, offence: 0, defence: 5, amount: 0, initialCost: 30, cost: 30, speed: (10/divider).round(), initialLoot: 0, loot: 0).insertToDb();
-    Unit(villageId: villageId, name: "catapult", image: "assets/catapult.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, initialCost: 80, cost: 80, speed: (40/divider).round(), initialLoot: 50, loot: 50).insertToDb();
-    Unit(villageId: villageId, name: "king", image: "assets/king.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, initialCost: 500, cost: 500, speed: (60/divider).round(), initialLoot: 100, loot: 100).insertToDb();
+    Unit(villageId: villageId, name: "spearman", image: "assets/spearman.png", level: 1, initialOffence: 10, initialDefence: 10, offence: 10, defence: 10, amount: 0, inTransit: 0, initialCost: 20, cost: 20, speed: (25/divider).round(), initialLoot: 10, loot: 10).insertToDb();
+    Unit(villageId: villageId, name: "wizard", image: "assets/wizard.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, inTransit: 0, initialCost: 30, cost: 30, speed: (25/divider).round(), initialLoot: 20, loot: 20).insertToDb();
+    Unit(villageId: villageId, name: "spy", image: "assets/spy.png", level: 1, initialOffence: 0, initialDefence: 2, offence: 0, defence: 2, amount: 0, inTransit: 0, initialCost: 30, cost: 30, speed: (10/divider).round(), initialLoot: 0, loot: 0).insertToDb();
+    Unit(villageId: villageId, name: "catapult", image: "assets/catapult.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, inTransit: 0, initialCost: 80, cost: 80, speed: (40/divider).round(), initialLoot: 50, loot: 50).insertToDb();
+    Unit(villageId: villageId, name: "king", image: "assets/king.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, inTransit: 0, initialCost: 500, cost: 500, speed: (60/divider).round(), initialLoot: 100, loot: 100).insertToDb();
 
     // Add units to tiles for defending testing
     // Tile(villageId: villageId, rowNum: 16, columnNum: 4, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
@@ -359,6 +359,20 @@ class Village {
     return maps;
   }
 
+  static Future<int> getNumberOfVillages() async {
+    final db = await DatabaseHelper.instance.database;
+
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+    SELECT 
+      *
+    FROM villages;
+    ''');
+
+    List<Village> villages = maps.map((map) => Village.fromMap(map)).toList();
+
+    return villages.length;
+  }
+
   static Future<int> getNumberOfOwnedVillages() async {
     final db = await DatabaseHelper.instance.database;
 
@@ -499,7 +513,7 @@ class Village {
   Future<int?> getCapacity() async {
 
     int? level = await getBuildingLevel('farm');
-    int capacity = 5 + (pow(2.5, pow(level!, 0.5))).round();
+    int capacity = 5 + pow(3, pow(level!, 0.5)).round();
 
     return capacity;
 
@@ -509,18 +523,36 @@ class Village {
     final db = await DatabaseHelper.instance.database;
 
     // Query the tiles table for the count of units associated with the given villageId
-    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+    final List<Map<String, dynamic>> tileMaps = await db.rawQuery('''
     SELECT COUNT(*) as unit_count
     FROM tiles
     WHERE village_id = ? AND content_type = 'unit'
   ''', [id]);
 
-    // Check if the result is not empty and return the count
-    if (maps.isNotEmpty && maps.first['unit_count'] != null) {
-      return maps.first['unit_count'] as int;
+    // Query the units table for the sum of the amount of units associated with the given villageId,
+    // excluding rows where the name is 'spy'
+    final List<Map<String, dynamic>> unitMaps = await db.rawQuery('''
+    SELECT SUM(amount + in_transit) as total_units
+    FROM units
+    WHERE village_id = ? AND name != 'spy'
+  ''', [id]);
+
+    // Check if the results are not empty and get the counts
+    int tileCount = 0;
+    int unitCount = 0;
+
+    if (tileMaps.isNotEmpty && tileMaps.first['unit_count'] != null) {
+      tileCount = tileMaps.first['unit_count'] as int;
     }
-    return null; // Return null if no such units found
+
+    if (unitMaps.isNotEmpty && unitMaps.first['total_units'] != null) {
+      unitCount = unitMaps.first['total_units'] as int;
+    }
+
+    // Return the total count
+    return tileCount + unitCount;
   }
+
 
   Future<void> addTile(Tile tile) async {
     final db = await DatabaseHelper.instance.database;

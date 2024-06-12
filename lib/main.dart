@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 //import 'package:workmanager/workmanager.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:habit/attack_simulator.dart';
 import 'package:habit/event_view.dart';
 import 'package:habit/habit_list.dart';
 import 'package:habit/habit_details.dart';
@@ -425,10 +426,30 @@ class _HomePageState extends State<HomePage> {
             //   },
             // ),
             ListTile(
+              title: Text("_Simulator"),
+              onTap: () async {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AttackSimulator(),
+                    fullscreenDialog: true, // make the page full screen
+                  ),
+                );
+              },
+            ),
+            ListTile(
               title: Text("Backup database"),
               onTap: () async {
                 DateTime currentTime = DateTime.now();
                 await (DatabaseHelper.instance.backupDatabase(currentTime));
+              },
+            ),
+            ListTile(
+              title: Text("Temp"),
+              onTap: () async {
+                Village village = await Village.getVillageById(2);
+                final db = await DatabaseHelper.instance.database;
+                village.upgradeBuildingLevel(db, "town_hall", 0);
               },
             ),
             GlobalVariables.appMode == 'test' ? ListTile(

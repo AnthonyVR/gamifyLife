@@ -23,7 +23,7 @@ class _MapViewState extends State<MapView> {
   final String grassImage = 'assets/village_package/tiles/medievalTile_57.png';
   final String rock = 'assets/village_package/environment/medievalEnvironment_07.png';
 
-  int gridSizeWidth = 30;
+  int gridSizeWidth = 32;
   int gridSizeHeight = 30;
   List<List<Map<String, dynamic>>> tileMap = [];
 
@@ -62,79 +62,71 @@ class _MapViewState extends State<MapView> {
         coordinatesDisplayKey.currentState?.updateCoordinates(currentRow, currentColumn);
       }
     });
-
-
   }
-
 
   @override
   void didChangeDependencies() {
-
     super.didChangeDependencies();
 
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     const tileSize = 40.0;
 
-    // gridSizeWidth = (screenWidth / tileSize).floor();
-    // gridSizeHeight = (screenHeight / tileSize).floor();
-
     tileMap = List.generate(gridSizeHeight,
             (i) => List.generate(gridSizeWidth, (j) => {}));
-
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: <Widget>[
-          FutureBuilder<Village?>(
-            future: _villageFuture,
-            builder: (BuildContext context, AsyncSnapshot<Village?> villageSnapshot) {
-              if (villageSnapshot.connectionState == ConnectionState.done) {
-                if (!villageSnapshot.hasData || villageSnapshot.data == null) {
-                  return Center(child: Text('Error loading map!'));
-                }
+        body: Stack(
+          children: <Widget>[
+            FutureBuilder<Village?>(
+              future: _villageFuture,
+              builder: (BuildContext context, AsyncSnapshot<Village?> villageSnapshot) {
+                if (villageSnapshot.connectionState == ConnectionState.done) {
+                  if (!villageSnapshot.hasData || villageSnapshot.data == null) {
+                    return Center(child: Text('Error loading map!'));
+                  }
 
-                _village = villageSnapshot.data; // Assign to the local variable
+                  _village = villageSnapshot.data; // Assign to the local variable
 
-                return FutureBuilder<Map<int, Map<int, Map<String, dynamic>>>>(
-                  future: Village.fetchVillages(),
-                  builder: (BuildContext context, AsyncSnapshot<Map<int, Map<int, Map<String, dynamic>>>> tileSnapshot) {
-                    if (tileSnapshot.connectionState == ConnectionState.done) {
-                      if (!tileSnapshot.hasData) {
-                        return Center(child: Text('Error loading tiles!'));
+                  return FutureBuilder<Map<int, Map<int, Map<String, dynamic>>>>(
+                    future: Village.fetchVillages(),
+                    builder: (BuildContext context, AsyncSnapshot<Map<int, Map<int, Map<String, dynamic>>>> tileSnapshot) {
+                      if (tileSnapshot.connectionState == ConnectionState.done) {
+                        if (!tileSnapshot.hasData) {
+                          return Center(child: Text('Error loading tiles!'));
+                        }
+
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          // Center the map vertically
+                          _verticalController.jumpTo(
+                              (_verticalController.position.maxScrollExtent / 1.5) - (MediaQuery.of(context).size.height / 6)
+                          );
+
+                          // Center the map horizontally
+                          _horizontalController.jumpTo(
+                              (_horizontalController.position.maxScrollExtent / 1.8) - (MediaQuery.of(context).size.width / 8)
+                          );
+                        });
+
+                        Map<int, Map<int, Map<String, dynamic>>> tileMap = tileSnapshot.data!;
+                        return _buildTileGridView(tileMap);
+                      } else {
+                        return Center(child: CircularProgressIndicator());
                       }
 
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        // Center the map vertically
-                        _verticalController.jumpTo(
-                            (_verticalController.position.maxScrollExtent / 1.5) - (MediaQuery.of(context).size.height / 6)
-                        );
-
-                        // Center the map horizontally
-                        _horizontalController.jumpTo(
-                            (_horizontalController.position.maxScrollExtent / 1.8) - (MediaQuery.of(context).size.width / 8)
-                        );
-                      });
-
-                      Map<int, Map<int, Map<String, dynamic>>> tileMap = tileSnapshot.data!;
-                      return _buildTileGridView(tileMap);
-                    } else {
-                      return Center(child: CircularProgressIndicator());
-                    }
-
-                  },
-                );
-              } else {
-                return Center(child: CircularProgressIndicator());
-              }
-            },
-          ),
-          CoordinatesDisplay(key: coordinatesDisplayKey, row: currentRow, column: currentColumn),
-        ],
-      )
+                    },
+                  );
+                } else {
+                  return Center(child: CircularProgressIndicator());
+                }
+              },
+            ),
+            CoordinatesDisplay(key: coordinatesDisplayKey, row: currentRow, column: currentColumn),
+          ],
+        )
     );
   }
 
@@ -166,9 +158,8 @@ class _MapViewState extends State<MapView> {
 
               String? imagePath;
               if (tileMap.containsKey(row) && tileMap[row]!.containsKey(column)) {
-
-                if(tileMap[row]![column]!['owned'] == 1){
-                  if(tileMap[row]![column]!['id'] == selectedVillageId){
+                if (tileMap[row]![column]!['owned'] == 1) {
+                  if (tileMap[row]![column]!['id'] == selectedVillageId) {
                     imagePath = 'assets/village_walled_selected.png';
                   } else {
                     imagePath = 'assets/village_walled.png';
@@ -182,8 +173,7 @@ class _MapViewState extends State<MapView> {
                 onTapDown: (details) => _tapPosition = details.globalPosition,
                 onTap: () {
                   if (_tapPosition != null && imagePath != null) {
-
-                    if(tileMap[row]![column]!['owned'] == 1){
+                    if (tileMap[row]![column]!['owned'] == 1) {
                       _showOwnedVillagePopup(context, _tapPosition!, tileMap[row]![column]!);
                     } else {
                       _showEnemyVillagePopup(context, _tapPosition!, tileMap[row]![column]!);
@@ -202,7 +192,7 @@ class _MapViewState extends State<MapView> {
   Future<void> _showOwnedVillagePopup(BuildContext context, Offset offset, Map<String, dynamic> tileData) async {
     final RenderBox overlay = Overlay.of(context)?.context.findRenderObject() as RenderBox;
 
-    Village? village = await  Village.getVillageById(tileData['id']);
+    Village? village = await Village.getVillageById(tileData['id']);
     List<Unit>? units = await village.getUnits();
 
     showMenu(
@@ -224,7 +214,7 @@ class _MapViewState extends State<MapView> {
               setState(() {
                 selectedVillageId = tileData['id'];
               });
-              },
+            },
             child: Text("Select"),
           ),
         ),
@@ -319,7 +309,6 @@ class _MapViewState extends State<MapView> {
                 },
               );
             },
-
             child: const Text("attack"),
           ),
         ),
@@ -332,11 +321,7 @@ class _MapViewState extends State<MapView> {
     Village? village = await Village.getVillageById(villageId);
     return village.getUnits();
   }
-
 }
-
-
-
 
 class UnitsPopup extends StatefulWidget {
   final List<Unit> units;
@@ -362,9 +347,7 @@ class _UnitsPopupState extends State<UnitsPopup> {
     selectedUnitsMap = {for (var unit in widget.units) unit: unit.amount};
   }
 
-
   void _onAttackPressed() {
-
     List<Map<String, dynamic>> selectedUnits = selectedUnitsMap.entries
         .map((entry) => {
       'unit': {'name': entry.key.name, 'speed': entry.key.speed}, // Structure modified here
@@ -386,7 +369,7 @@ class _UnitsPopupState extends State<UnitsPopup> {
                 .where((detail) => detail['amount'] as int > 0)
                 .toList();
 
-            //Call the attack function with the list of selected units and their amounts
+            // Call the attack function with the list of selected units and their amounts
             Attack.createAttack(DateTime.now(), widget.selectedVillageId, widget.destinationVillageId, attackDetails);
 
             print('Attack confirmed with details: $attackDetails');
@@ -394,25 +377,12 @@ class _UnitsPopupState extends State<UnitsPopup> {
           onCancel: () {
             print('Attack canceled');
           },
-          units: selectedUnits, selectedVillageId: widget.selectedVillageId, destinationVillageId: widget.destinationVillageId
+          units: selectedUnits,
+          selectedVillageId: widget.selectedVillageId,
+          destinationVillageId: widget.destinationVillageId,
         );
       },
     );
-
-    // List<Map<String, dynamic>> attackDetails = selectedUnitsMap.entries
-    //     .map((entry) => {
-    //   'unit': entry.key,
-    //   'amount': entry.value,
-    // })
-    //     .where((detail) => detail['amount'] as int > 0)
-    //     .toList();
-    //
-    // // Call the createAttack function with the list of selected units and their amounts
-    // //Attack.attackEnemyVillage(widget.selectedVillageId, widget.destinationVillageId, attackDetails);
-    // Attack.createAttack(widget.selectedVillageId, widget.destinationVillageId, attackDetails);
-    // //attackEnemyVillage(attackDetails);
-    //
-    // print('Attack details: $attackDetails');
   }
 
   @override
@@ -440,7 +410,7 @@ class _UnitsPopupState extends State<UnitsPopup> {
                         selectedUnitsMap[unit] = value!;
                       });
                     },
-                  ),// adjust width and height as needed
+                  ),
                 ],
               ),
               onTap: () {
@@ -460,7 +430,6 @@ class _UnitsPopupState extends State<UnitsPopup> {
     );
   }
 }
-
 
 class ConfirmationPopup extends StatefulWidget {
   final VoidCallback onConfirm;
@@ -537,10 +506,8 @@ class _ConfirmationPopupState extends State<ConfirmationPopup> {
                     Navigator.of(context).pop();
                     Navigator.of(context).pop();
                     Navigator.of(context).pop();
-
                   },
-                  style: ElevatedButton.styleFrom(
-                  ),
+                  style: ElevatedButton.styleFrom(),
                   child: Text('Confirm'),
                 ),
                 ElevatedButton(
@@ -548,8 +515,7 @@ class _ConfirmationPopupState extends State<ConfirmationPopup> {
                     widget.onCancel();
                     Navigator.of(context).pop(); // Close the dialog on cancellation
                   },
-                  style: ElevatedButton.styleFrom(
-                  ),
+                  style: ElevatedButton.styleFrom(),
                   child: Text('Cancel'),
                 ),
               ],
@@ -580,6 +546,7 @@ class CoordinatesDisplay extends StatefulWidget {
   @override
   _CoordinatesDisplayState createState() => _CoordinatesDisplayState();
 }
+
 class _CoordinatesDisplayState extends State<CoordinatesDisplay> {
   int _row;
   int _column;
@@ -618,6 +585,3 @@ class _CoordinatesDisplayState extends State<CoordinatesDisplay> {
     );
   }
 }
-
-
-
