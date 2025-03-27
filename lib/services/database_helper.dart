@@ -29,7 +29,7 @@ import '../models/misc_object.dart';
 import '../models/village.dart';
 import '../models/event.dart';
 
-
+import 'package:permission_handler/permission_handler.dart';
 
 
 class DatabaseHelper {
@@ -171,37 +171,59 @@ class DatabaseHelper {
 
   }
 
+  // Your backup function
   Future<void> backupDatabase(DateTime timestamp) async {
-    // Format the timestamp
-    String formattedTimestamp = DateFormat('yyyy-MM-dd_HH:mm:ss').format(timestamp);
+    // Request storage permission first
+    if (await requestStoragePermission()) {
+      // Proceed with the backup if permission is granted
+      String formattedTimestamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(timestamp);
+      String dbPath = join(await getDatabasesPath(), "${GlobalVariables.appMode}_$_databaseName");
 
-    // Paths
-    String dbPath = join(await getDatabasesPath(), "${GlobalVariables.appMode}_$_databaseName");
-    Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String backupPath = join(documentsDirectory.path, "${GlobalVariables.appMode}_${_databaseName}_$formattedTimestamp.backup");
+      Directory externalDir = Directory("/storage/emulated/0/Documents");
 
-    // Copy the file
-    File originalFile = File(dbPath);
-    await originalFile.copy(backupPath);
+      if (!externalDir.existsSync()) {
+        externalDir.createSync(recursive: true);
+      }
 
-    print("Backup created at $backupPath");
+      String backupPath = join(externalDir.path, "${GlobalVariables.appMode}_${_databaseName}_$formattedTimestamp.backup");
+      File originalFile = File(dbPath);
+      await originalFile.copy(backupPath);
+
+      print("Backup created at $backupPath");
+    } else {
+      print('Permission not granted, cannot proceed with backup');
+    }
   }
 
-  Future<String> getBackupPath(String formattedTimestamp) async {
-    Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    return join(documentsDirectory.path, "${GlobalVariables.appMode}_${_databaseName}_$formattedTimestamp.backup");
+  // The permission request function
+  Future<bool> requestStoragePermission() async {
+    var status = await Permission.storage.request();
+    return status.isGranted;
   }
+
+  // Future<String> getBackupPath(String formattedTimestamp) async {
+  //   Directory documentsDirectory = await getApplicationDocumentsDirectory();
+  //   return join(documentsDirectory.path, "${GlobalVariables.appMode}_${_databaseName}_$formattedTimestamp.backup");
+  // }
 
   Future<String> restoreDatabaseFromBackup(String backupFileName) async {
     String status = "Failed to restore";
     try {
-      Directory documentsDirectory = await getApplicationDocumentsDirectory();
-      String backupPath = join(documentsDirectory.path, backupFileName);
+      // Define the external storage directory where the backups are stored
+      Directory externalDir = Directory("/storage/emulated/0/Documents"); // Adjust if using another external folder
 
+      // Path to the backup file in the external storage
+      String backupPath = join(externalDir.path, backupFileName);
+
+      // Check if the backup file exists
       File backupFile = File(backupPath);
       if (await backupFile.exists()) {
+        // Path to the current database in the app's internal storage
         String dbPath = join(await getDatabasesPath(), "${GlobalVariables.appMode}_$_databaseName");
+
+        // Copy the backup file to the database path
         await backupFile.copy(dbPath);
+
         status = "Restore successful!";
         print("Database restored from backup at $backupPath");
       } else {
@@ -211,6 +233,7 @@ class DatabaseHelper {
     } catch (e) {
       print("Failed to restore the database: $e");
     }
+
     return status;
   }
 

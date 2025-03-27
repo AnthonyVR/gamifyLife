@@ -104,8 +104,8 @@ void checkAndUpdateDayTable() async {
   print("running checkAndUpdateDayTable()");
   final dbHelper = DatabaseHelper.instance;
 
-  final currentDate = DateTime.now().subtract(const Duration(hours: 8));
-  print(currentDate);
+  final currentDate = DateTime.now().subtract(const Duration(hours: 8)); //hours: 8
+  print("current date: ${currentDate}");
   var formattedDate = DateFormat('yyyy-MM-dd').format(currentDate);
   final weekday = DateFormat('EEEE').format(currentDate);
   // Try to retrieve a row from the Day table with the current date
@@ -127,7 +127,7 @@ class HabitTrackerApp extends StatelessWidget {
       theme: ThemeData(
         fontFamily: 'Tangerine',
         textTheme: const TextTheme(
-          bodyText2: TextStyle(fontSize: 20), // replace with desired size
+          bodyMedium: TextStyle(fontSize: 20), // replace with desired size
         ),
         primarySwatch: Colors.blue,
       ),

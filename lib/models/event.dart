@@ -112,6 +112,7 @@ class Event {
       // If there's a result, return the timestamp as DateTime
       return DateTime.parse(result.first['timestamp']);
     } else {
+      await Event(timestamp: DateTime.now(), eventType: 'game_opened', info: {}).insertToDb();
       return DateTime.now();
     }
 
@@ -186,6 +187,8 @@ class Event {
 
   Future<int> calculateEvents() async {
 
+    print("test1");
+
     final db = await DatabaseHelper.instance.database;
 
     Settings settings = await Settings.getSettingsFromDB(db);
@@ -199,6 +202,9 @@ class Event {
     int eventsOccurred = 0;
 
     DateTime lastGameOpened = await getLastGameOpened(db);
+    print("last game opened:");
+    print(lastGameOpened);
+
     DateTime currentTimeStamp = DateTime.now();
 
     Map allInfo = {};
@@ -240,12 +246,16 @@ class Event {
 
     for(Village village in villages){
 
+      print("----- printing events for village ${village.name} ---------");
+
       info['coordinates'] = "[${village.row}, ${village.column}]";
 
       int numberOfBuildingLevelUps =  calculateNumberOfEvents(timeSinceGameOpened, buildingLevelUpFrequency);
       allInfo['building_level_up_randomValue'] = info['randomValue'];
       allInfo['building_level_up_cumulativeProbability'] = info['cumulativeProbability'];
       allInfo['building_level_up_numberOfEvents'] = info['numberOfEvents'];
+
+      print("---first check");
 
       //numberOfBuildingLevelUps = 0;
       for (int i = 0; i < numberOfBuildingLevelUps; i++) {
@@ -265,7 +275,9 @@ class Event {
       int numberOfUnitCreations =  calculateNumberOfEvents(timeSinceGameOpened, unitCreationFrequency);
       print("time since game opened $timeSinceGameOpened");
       print("inital number of unit creations $numberOfUnitCreations");
+      print("getting building level");
       int? townhallLevel = await village.getBuildingLevel('town_hall');
+      print("getting number of villages");
       int? numberOfVillages = await Village.getNumberOfVillages();
 
       print("number of villages $numberOfVillages");
@@ -289,6 +301,8 @@ class Event {
       allInfo['unit_creation_numberOfEvents'] = info['numberOfEvents'];
 
       print("number of unit creations $numberOfUnitCreations");
+
+      print("test100000006");
       //numberOfUnitCreations = 0;
       for (int i = 0; i < numberOfUnitCreations; i++) {
         Map unitAdded = await village.addEnemyUnit();
@@ -325,11 +339,16 @@ class Event {
         eventsOccurred++;
       }
 
+      print("test100000002");
+
 
       int numberOfAttacks =  calculateNumberOfEvents(timeSinceGameOpened, attackFrequency);
       //each village can only attack the player once for each timeframe because the database logic does not allow otherwise
       numberOfAttacks = numberOfAttacks > 0 ? 1 : 0;
       //numberOfAttacks = 0;
+      print("num attacks:");
+      print(numberOfAttacks);
+
       for (int i = 0; i < numberOfAttacks; i++) {
 
         //// pick a random village from the player's villages (village that gets attacked)
@@ -376,7 +395,10 @@ class Event {
 
     }
 
-    if(timeSinceGameOpened > 10) { // only insert gameOpened event if game hasn't been opened in 3 minutes to prevent event spamming
+    print("test1aaaaa");
+
+    if(timeSinceGameOpened > 10) { // only insert gameOpened event if game hasn't been opened in 10 minutes to prevent event spamming
+      print("game_opened event added");
       await Event(timestamp: currentTimeStamp, eventType: 'game_opened', info: allInfo).insertToDb();
     }
     return eventsOccurred;

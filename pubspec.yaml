@@ -36,12 +36,16 @@ dependencies:
   intl: ^0.17.0
   flutter_svg: any
   workmanager: ^0.5.2
+<<<<<<< HEAD
   permission_handler: ^10.2.0
+=======
+  permission_handler: ^11.1.0  # Replace with the latest version if available
+>>>>>>> 0209cd6 (updates)
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
-  fl_chart: ^0.40.1
+  fl_chart: ^0.69.0
   shared_preferences: ^2.0.9
   sqflite_common_ffi: any
 dev_dependencies:

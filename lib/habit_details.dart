@@ -61,9 +61,9 @@ class HabitDetailsState extends State<HabitDetails> {
         x: index, // Set index as x value.
         barRods: [
           BarChartRodData(
-            y: amount, // Set amount as y value.
+            toY: amount, // Replaced 'y' with 'toY'
             width: barWidth,
-            colors: [Colors.blue],
+            color: Colors.blue,
           ),
         ],
         showingTooltipIndicators: [], // Set to an empty list to remove the indicators.
@@ -76,23 +76,38 @@ class HabitDetailsState extends State<HabitDetails> {
       // Add labels to x-axis.
       titlesData: FlTitlesData(
         show: true,
-        bottomTitles: SideTitles(
-          showTitles: true,
-          getTitles: (double index) {
-            final int i = index.toInt();
-            return history[i]['date'].toString();
-          },
-          getTextStyles: (context, value) => const TextStyle(color: Colors.black, fontSize: 10),
+        bottomTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            getTitlesWidget: (double index, TitleMeta meta) {
+              final int i = index.toInt();
+              return Text(
+                history[i]['date'].toString(),
+                style: const TextStyle(color: Colors.black, fontSize: 10),
+              );
+            },
+          ),
         ),
-        topTitles: SideTitles(
-          showTitles: false, // Disable top titles to remove the indices at the top.
+        topTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: false, // Disable top titles to remove the indices at the top.
+          ),
         ),
-        leftTitles: SideTitles(
-          showTitles: true,
-          getTextStyles: (context, value) => const TextStyle(color: Colors.black, fontSize: 10),
+        leftTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            getTitlesWidget: (double value, TitleMeta meta) {
+              return Text(
+                value.toString(),
+                style: const TextStyle(color: Colors.black, fontSize: 10),
+              );
+            },
+          ),
         ),
-        rightTitles: SideTitles(
-          showTitles: false,
+        rightTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: false,
+          ),
         ),
       ),
       gridData: FlGridData(show: true),

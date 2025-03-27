@@ -26,24 +26,32 @@ class _DatabaseViewState extends State<DatabaseView> {
   }
 
   Future<void> _loadBackupVersions() async {
-    final directory = await getApplicationDocumentsDirectory();
-    final backupDirectory = Directory('${directory.path}');
-    if (!backupDirectory.existsSync()) {
-      print("Backup directory does not exist at ${backupDirectory.path}");
+    // Define the external storage directory for the backups
+    Directory externalDir = Directory("/storage/emulated/0/Documents"); // or wherever you save the backups
+
+    // Check if the backup directory exists
+    if (!externalDir.existsSync()) {
+      print("Backup directory does not exist at ${externalDir.path}");
       return;
     }
 
-    final files = backupDirectory.listSync();
-    print("Looking for backups in directory: ${backupDirectory.path}"); // Directory being scanned
+    // List the files in the external storage backup directory
+    final files = externalDir.listSync();
+
+    // Log the directory being scanned and the files found
+    print("Looking for backups in directory: ${externalDir.path}");
     files.forEach((file) {
       print("Found file: ${file.path}"); // Each file found
     });
 
+    // Update the state to reflect the available backup versions
     setState(() {
       availableVersions = files
           .where((item) => FileSystemEntity.isFileSync(item.path))
           .map((item) => item.path.split('/').last)
-          .toList().reversed.toList();
+          .toList()
+          .reversed
+          .toList();
     });
   }
 

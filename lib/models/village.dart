@@ -197,6 +197,8 @@ class Village {
     Unit(villageId: villageId, name: "spy", image: "assets/spy.png", level: 1, initialOffence: 0, initialDefence: 2, offence: 0, defence: 2, amount: 0, inTransit: 0, initialCost: 30, cost: 30, speed: (10/divider).round(), initialLoot: 0, loot: 0).insertToDb();
     Unit(villageId: villageId, name: "catapult", image: "assets/catapult.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, inTransit: 0, initialCost: 80, cost: 80, speed: (40/divider).round(), initialLoot: 50, loot: 50).insertToDb();
     Unit(villageId: villageId, name: "king", image: "assets/king.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, inTransit: 0, initialCost: 500, cost: 500, speed: (60/divider).round(), initialLoot: 100, loot: 100).insertToDb();
+    Unit(villageId: villageId, name: "wolf", image: "assets/wolf2.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, inTransit: 0, initialCost: 500, cost: 500, speed: (60/divider).round(), initialLoot: 100, loot: 100).insertToDb();
+    Unit(villageId: villageId, name: "wolf", image: "assets/wolf3.png", level: 1, initialOffence: 20, initialDefence: 5, offence: 20, defence: 5, amount: 0, inTransit: 0, initialCost: 500, cost: 500, speed: (60/divider).round(), initialLoot: 100, loot: 100).insertToDb();
 
     // Add units to tiles for defending testing
     // Tile(villageId: villageId, rowNum: 16, columnNum: 4, contentType: 'unit', contentId: 1).insertToDb(); // path_bottom_right_corner
@@ -362,6 +364,8 @@ class Village {
   static Future<int> getNumberOfVillages() async {
     final db = await DatabaseHelper.instance.database;
 
+    print("running getNumberOfVillages()");
+
     final List<Map<String, dynamic>> maps = await db.rawQuery('''
     SELECT 
       *
@@ -390,6 +394,7 @@ class Village {
 
   Future<int?> getBuildingLevel(String buildingName) async {
 
+    print("running getBuildingLevel()");
     final db = await DatabaseHelper.instance.database;
 
     // Query the buildings table for the farm level associated with the given villageId
@@ -399,7 +404,13 @@ class Village {
     WHERE village_id = ? AND name = ?
   ''', [id, buildingName]);
 
+    print("village_id: ${id}, ${buildingName}");
+
+    print("maps ${maps}");
+
     int level = maps.first['level'];
+
+    print("level ${level}");
 
     return level;
   }
